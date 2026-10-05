@@ -9,6 +9,15 @@ from sqlalchemy.pool import StaticPool
 
 from app.db import Base, get_session
 from app.main import app
+from app.services.demo import ensure_demo_project
+
+
+class FakeQueue:
+    def __init__(self) -> None:
+        self.jobs: list[tuple[str, str]] = []
+
+    async def enqueue(self, job: str, run_id: str) -> None:
+        self.jobs.append((job, run_id))
 
 
 @pytest.fixture
@@ -19,6 +28,9 @@ async def client() -> AsyncIterator[AsyncClient]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     sessions = async_sessionmaker(engine, expire_on_commit=False)
+    async with sessions() as session:
+        await ensure_demo_project(session)
+    app.state.queue = FakeQueue()
 
     async def override() -> AsyncIterator[AsyncSession]:
         async with sessions() as session:

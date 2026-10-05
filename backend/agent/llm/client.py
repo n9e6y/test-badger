@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -24,6 +25,7 @@ from agent.llm.types import (
     LLMOutputError,
     LLMRequest,
     LLMResponse,
+    LLMUnavailable,
     Stage,
     ToolCall,
     ToolSpec,
@@ -42,6 +44,9 @@ STAGE_EFFORT: dict[str, Effort | None] = {
     "reporter": None,
     "spike": "low",
 }
+
+# Backoff between full retries of the fallback chain on rate limits / outages.
+RETRY_BACKOFF_S: tuple[float, ...] = (4.0, 12.0)
 
 # Output ceilings per stage. Resellers reserve credit for max_tokens, so keep them tight.
 STAGE_MAX_TOKENS: dict[str, int] = {
@@ -148,16 +153,20 @@ class LLMClient:
 
     # ---------- low level ----------
 
-    def _route(self, stage: Stage) -> tuple[Provider, str]:
+    def _routes(self, stage: Stage) -> list[tuple[Provider, str]]:
+        """A role may list fallbacks: "openai_compat:a|openai_compat:b" (tried in order)."""
         assert self.roles is not None and self.providers is not None
-        provider_name, model = parse_role(self.roles[stage])
-        provider = self.providers.get(provider_name)
-        if provider is None:
-            raise LLMError(
-                f"LLM provider '{provider_name}' for stage {stage} is not configured "
-                f"(missing API key?)"
-            )
-        return provider, model
+        routes = []
+        for part in self.roles[stage].split("|"):
+            provider_name, model = parse_role(part.strip())
+            provider = self.providers.get(provider_name)
+            if provider is None:
+                raise LLMError(
+                    f"LLM provider '{provider_name}' for stage {stage} is not configured "
+                    f"(missing API key?)"
+                )
+            routes.append((provider, model))
+        return routes
 
     async def call(
         self,
@@ -170,9 +179,47 @@ class LLMClient:
         json_schema: dict[str, object] | None = None,
         max_tokens: int | None = None,
     ) -> LLMResponse:
+        """One logical call. On rate limits/outages: next fallback model, then back off and
+        retry the whole chain (03 §13: retry with backoff, then fail the stage cleanly)."""
         if self.cost_cap_usd is not None and self.totals.cost_usd >= self.cost_cap_usd:
             raise BudgetExceeded(f"LLM cost cap of ${self.cost_cap_usd:.2f} reached")
-        provider, model = self._route(stage)
+        routes = self._routes(stage)
+        last_error: LLMUnavailable | None = None
+        for attempt, delay in enumerate((0.0, *RETRY_BACKOFF_S)):
+            if delay:
+                logger.warning(
+                    "llm unavailable (run=%s stage=%s), retry %d in %.0fs: %s",
+                    self.run_id,
+                    stage,
+                    attempt,
+                    delay,
+                    last_error,
+                )
+                await asyncio.sleep(delay)
+            for provider, model in routes:
+                try:
+                    return await self._call_once(
+                        stage, provider, model, system, user_text, images=images, tools=tools,
+                        json_schema=json_schema, max_tokens=max_tokens,
+                    )  # fmt: skip
+                except LLMUnavailable as exc:
+                    last_error = exc
+        assert last_error is not None
+        raise last_error
+
+    async def _call_once(
+        self,
+        stage: Stage,
+        provider: Provider,
+        model: str,
+        system: str,
+        user_text: str,
+        *,
+        images: list[bytes] | None,
+        tools: list[ToolSpec] | None,
+        json_schema: dict[str, object] | None,
+        max_tokens: int | None,
+    ) -> LLMResponse:
         req = LLMRequest(
             model=model,
             system=system,

@@ -124,19 +124,56 @@ async def test_costs_recorded_and_budget_enforced() -> None:
     assert records[0].tokens_in == 100 and records[0].ok
 
 
-async def test_failed_call_is_recorded_as_not_ok() -> None:
+async def test_failed_call_is_recorded_as_not_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    import agent.llm.client as client_mod
+
+    monkeypatch.setattr(client_mod, "RETRY_BACKOFF_S", (0.0, 0.0))
     records: list[LLMCallRecord] = []
 
     async def recorder(r: LLMCallRecord) -> None:
         records.append(r)
 
-    fake = FakeLLM({"executor": [LLMUnavailable("down")]})
+    fake = FakeLLM({"executor": [LLMUnavailable("down")] * 3})
     with pytest.raises(LLMUnavailable):
         await fake.client(recorder=recorder).call("executor", "s", "o")
-    assert len(records) == 1 and records[0].ok is False
+    assert len(records) == 3 and not any(r.ok for r in records)  # first try + 2 backoff retries
 
 
 async def test_unconfigured_provider_is_a_clear_error() -> None:
     client = LLMClient(providers={}, roles={"planner": "anthropic:claude-sonnet-5-5"})
     with pytest.raises(LLMError, match="not configured"):
         await client.call("planner", "s", "u")
+
+
+async def test_fallback_model_then_backoff(monkeypatch: pytest.MonkeyPatch) -> None:
+    import agent.llm.client as client_mod
+
+    monkeypatch.setattr(client_mod, "RETRY_BACKOFF_S", (0.0, 0.0))
+
+    class Flaky:
+        name = "flaky"
+
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        async def generate(self, req):  # type: ignore[no-untyped-def]
+            from agent.llm.types import LLMResponse
+
+            self.calls.append(req.model)
+            if req.model == "primary" or len(self.calls) < 4:
+                raise LLMUnavailable("429")
+            return LLMResponse(text="ok", model=req.model)
+
+    flaky = Flaky()
+    client = LLMClient(
+        providers={"p": flaky}, roles={"executor": "p:primary|p:backup"}, cost_cap_usd=1.0
+    )
+    resp = await client.call("executor", "s", "u")
+    assert resp.model == "backup"
+    assert flaky.calls == ["primary", "backup", "primary", "backup"]
+
+    always_down = LLMClient(
+        providers={"p": Flaky()}, roles={"executor": "p:primary"}, cost_cap_usd=1.0
+    )
+    with pytest.raises(LLMUnavailable):
+        await always_down.call("executor", "s", "u")

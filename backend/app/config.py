@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     fernet_key: str = ""
 
     artifacts_dir: str = "./artifacts"
-    demo_shop_url: str = "http://localhost:8100"
+    demo_shop_url: str = "http://localhost:8100"  # what the worker's browser opens
+    demo_shop_public_url: str = ""  # what users see; defaults to demo_shop_url
 
     # LLM roles: "<provider>:<model>", provider in {anthropic, openai, openai_compat}
     llm_planner: str = "anthropic:claude-sonnet-5-5"

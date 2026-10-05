@@ -201,5 +201,6 @@ class BrowserSession:
             quality=70,
             full_page=full_page,
             mask=[self.page.locator("input[type=password]")],
+            mask_color="#9ca3af",
         )
         return len(data)

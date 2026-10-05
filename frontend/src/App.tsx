@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Login, Signup } from '@/pages/Auth'
 import { Dashboard } from '@/pages/Dashboard'
 import { Landing } from '@/pages/Landing'
+import { RunPage } from '@/pages/RunPage'
 
 function NotFound() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/app" element={<AppLayout />}>
         <Route index element={<Dashboard />} />
+        <Route path="runs/:runId" element={<RunPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

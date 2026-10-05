@@ -58,7 +58,8 @@ class OpenAIChatProvider:
                 for t in req.tools
             ]
             params["tool_choice"] = "auto"
-            params["parallel_tool_calls"] = False
+            if not self._is_openrouter:  # OpenRouter endpoints mostly reject this parameter
+                params["parallel_tool_calls"] = False
         if req.json_schema:
             params["response_format"] = {
                 "type": "json_schema",

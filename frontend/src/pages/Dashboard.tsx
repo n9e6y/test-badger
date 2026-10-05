@@ -1,13 +1,35 @@
-import { FlaskConical, Plus, ShoppingCart, UserPlus } from 'lucide-react'
+import { FlaskConical, Loader2, Plus, ShoppingCart, UserPlus } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 
-import { useMe } from '@/api/hooks'
-import { EmptyState } from '@/components/common/states'
+import { useMe, useProjects, useRecentRuns, useStartRun } from '@/api/hooks'
+import type { TestType } from '@/api/types'
+import { OverallBadge, StatusBadge } from '@/components/common/badges'
+import { EmptyState, ErrorState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
+import { formatDate, TEST_TYPE_LABEL } from '@/lib/format'
 
-// Day 1: static shell. Demo-run buttons, sites and runs are wired up on Day 3–4.
 export function Dashboard() {
   const me = useMe()
+  const projects = useProjects()
+  const runs = useRecentRuns()
+  const startRun = useStartRun()
+  const navigate = useNavigate()
+  const demo = projects.data?.find((p) => p.is_demo)
+  const sites = projects.data?.filter((p) => !p.is_demo) ?? []
   const firstName = me.data?.name.split(' ')[0]
+
+  const startDemo = (testType: TestType) => {
+    if (!demo) return
+    startRun.mutate(
+      { projectId: demo.id, input: { test_type: testType } },
+      {
+        onSuccess: (run) => navigate(`/app/runs/${run.id}`),
+        onError: (err) => toast.error(err.message),
+      },
+    )
+  }
+  const pending = (t: TestType) => startRun.isPending && startRun.variables?.input.test_type === t
 
   return (
     <div className="grid gap-8">
@@ -25,12 +47,20 @@ export function Dashboard() {
               A real store with hidden bugs. See what the agent finds in about 5 minutes.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <Button disabled title="Coming soon">
-                <UserPlus className="size-4" aria-hidden />
+              <Button onClick={() => startDemo('registration')} disabled={!demo || startRun.isPending}>
+                {pending('registration') ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <UserPlus className="size-4" aria-hidden />
+                )}
                 Test registration
               </Button>
-              <Button variant="outline" disabled title="Coming soon">
-                <ShoppingCart className="size-4" aria-hidden />
+              <Button variant="outline" onClick={() => startDemo('store')} disabled={!demo || startRun.isPending}>
+                {pending('store') ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <ShoppingCart className="size-4" aria-hidden />
+                )}
                 Test store &amp; checkout
               </Button>
             </div>
@@ -46,14 +76,51 @@ export function Dashboard() {
             Add a site
           </Button>
         </div>
-        <EmptyState title="No sites yet">
-          Start with the demo shop above, or add your own site.
-        </EmptyState>
+        {projects.isError ? (
+          <ErrorState message={projects.error.message} onRetry={() => projects.refetch()} />
+        ) : sites.length === 0 ? (
+          <EmptyState title="No sites yet">Start with the demo shop above, or add your own site.</EmptyState>
+        ) : (
+          <ul className="divide-y rounded-lg border bg-background">
+            {sites.map((p) => (
+              <li key={p.id} className="flex items-center justify-between p-4">
+                <div>
+                  <p className="font-medium">{p.name}</p>
+                  <p className="text-sm text-muted-foreground">{p.base_url}</p>
+                </div>
+                {p.last_run?.overall_verdict && <OverallBadge verdict={p.last_run.overall_verdict} />}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="grid gap-3">
         <h2 className="font-medium">Recent runs</h2>
-        <EmptyState title="No runs yet">Your test runs will show up here.</EmptyState>
+        {runs.isError ? (
+          <ErrorState message={runs.error.message} onRetry={() => runs.refetch()} />
+        ) : !runs.data || runs.data.length === 0 ? (
+          <EmptyState title="No runs yet">Your test runs will show up here.</EmptyState>
+        ) : (
+          <ul className="divide-y rounded-lg border bg-background">
+            {runs.data.map((r) => (
+              <li key={r.id}>
+                <Link
+                  to={`/app/runs/${r.id}`}
+                  className="flex flex-wrap items-center justify-between gap-2 p-4 hover:bg-muted/40"
+                >
+                  <div>
+                    <p className="font-medium">{r.project_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {TEST_TYPE_LABEL[r.test_type]} · {formatDate(r.created_at)}
+                    </p>
+                  </div>
+                  {r.overall_verdict ? <OverallBadge verdict={r.overall_verdict} /> : <StatusBadge status={r.status} />}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   )
