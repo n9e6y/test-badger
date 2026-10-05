@@ -5,8 +5,9 @@ of the current page (elements are listed with refs like [12]). Then:
 - Think briefly (one or two sentences) about what you see and what to do next, then call
   exactly ONE tool. Always call a tool.
 - Use element refs from the LATEST observation only. Refs change after every action.
-- Use the scenario's test data exactly. For credentials of an existing test account type the
-  placeholders {{TEST_EMAIL}} / {{TEST_PASSWORD}}; the system fills in the real values.
+- Use the scenario's test data exactly. Only when "Test account" says it is available, type
+  {{TEST_EMAIL}} / {{TEST_PASSWORD}} to log in with it (the system fills in the real values);
+  otherwise never type placeholders.
 - Cookie banners, newsletter popups and loading spinners are normal and not bugs: dismiss them
   (dismiss_overlay) or wait, then continue.
 - Never pay and never place a real order. Reaching the payment page is the end of a checkout

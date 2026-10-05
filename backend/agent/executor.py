@@ -136,11 +136,18 @@ def _signals_line(step: StepRecord) -> str:
     return "; ".join(parts) if parts else "no console errors or failed requests"
 
 
-def _scenario_text(s: Scenario) -> str:
+_ACCOUNT_LINE = {
+    True: "available as {{TEST_EMAIL}} / {{TEST_PASSWORD}}",
+    False: "none (type the test data values literally)",
+}
+
+
+def _scenario_text(s: Scenario, has_account: bool) -> str:
     steps = "\n".join(f"  {i}. {x}" for i, x in enumerate(s.steps_intent, 1))
     return (
         f"SCENARIO {s.id}: {s.title} ({s.kind})\nStart page: {s.start_url}\n"
         f"Intended steps:\n{steps}\nTest data:\n{scenario_data_text(s)}\n"
+        f"Test account: {_ACCOUNT_LINE[has_account]}\n"
         f"Expected result: {s.expected_result}"
     )
 
@@ -225,7 +232,8 @@ async def execute_scenario(
         if len(snap.elements) < 3 or (len(steps) >= 2 and not steps[-1].ok and not steps[-2].ok):
             images = [await _jpeg(session)]  # vision fallback (03 §5.1)
         user = (
-            f"{_scenario_text(scenario)}\n\nRECENT ACTIONS\n{_history_text(steps)}\n\n"
+            f"{_scenario_text(scenario, tools.has_credentials)}\n\n"
+            f"RECENT ACTIONS\n{_history_text(steps)}\n\n"
             f"{warning}OBSERVATION (step {len(steps) + 1} of max {max_steps})\n{observation}"
         )
         try:

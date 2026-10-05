@@ -151,3 +151,11 @@ def test_admin_requires_token(client: TestClient) -> None:
     assert client.get(f"/__admin?token={store.ADMIN_TOKEN}").status_code == 200
     client.post(f"/__admin?token={store.ADMIN_TOKEN}", data={"action": "clean"})
     assert not any(v for k, v in store.switches().items() if k.startswith("B"))
+
+
+def test_checkout_empty_fields_say_required(bugs_off: TestClient) -> None:
+    add(bugs_off)
+    r = bugs_off.post("/checkout", data={**SHIPPING, "postal_code": "", "phone": ""})
+    assert "Postal code is required." in r.text and "Phone is required." in r.text
+    r = bugs_off.post("/checkout", data={**SHIPPING, "postal_code": "ABC"})
+    assert "Enter a valid postal code" in r.text

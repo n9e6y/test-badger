@@ -92,6 +92,10 @@ class BrowserTools:
         self.session = session
         self._secrets = secrets or {}
 
+    @property
+    def has_credentials(self) -> bool:
+        return bool(self._secrets)
+
     async def run(self, action: str, args: dict[str, Any]) -> ToolResult:
         if action not in BROWSER_ACTIONS:
             return self._result(False, f"unknown action '{action}'", args)

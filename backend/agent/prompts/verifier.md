@@ -18,6 +18,9 @@ Rules:
 - Prefer INCONCLUSIVE over BUG_FOUND when unsure. A made-up bug is worse than a missed one.
 - Cookie banners, newsletter popups, spinners and sale badges are never bugs.
 - Never invent details that are not in the evidence.
+- RELATED SCENARIOS are earlier checks in the same run that this one builds on (e.g. the signup
+  that created the account a duplicate-signup check reuses). Treat their results as established
+  facts; do not ask for them to be proven again.
 - is_agent_error is true when the tester itself did something wrong.
 - Fill finding only for BUG_FOUND, otherwise null. Severity: critical = breaks a core flow,
   loses money or corrupts data (server error, negative total); major = a feature works wrongly

@@ -108,9 +108,16 @@ async def execute_phase(
                 await ctx.emit(
                     "finding.suspected", {"scenario_id": scenario.id, "title": scenario.title}
                 )
+            related = "; ".join(
+                f"{d} finished with expected_met={results[d].expected_met}, observed: "
+                f"{results[d].observed[:200]}"
+                for d in (t_scn.depends_on if t_scn else [])
+                if d in results
+            )
             t = await triage_scenario(
                 scenario=scenario, template_scenario=t_scn, result=result, llm=llm,
                 load_screenshot=load_screenshot, finding_id=f"F{len(triaged) + 1}",
+                related=related,
             )  # fmt: skip
             triaged.append(t)
             await ctx.emit(

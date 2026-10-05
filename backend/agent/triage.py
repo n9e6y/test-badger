@@ -103,6 +103,7 @@ async def triage_scenario(
     llm: LLMClient,
     load_screenshot: LoadScreenshot,
     finding_id: str,
+    related: str = "",
 ) -> Triaged:
     signals = serious_signals(result.steps)
 
@@ -143,6 +144,7 @@ async def triage_scenario(
         f"\nObserved: {result.observed or '(none)'}\nNotes: {result.notes or '(none)'}\n\n"
         f"STEP LOG\n{step_log(result.steps)}\n\n"
         f"SERIOUS SIGNALS: {'; '.join(signals) or 'none'}\n"
+        f"RELATED SCENARIOS (this one depends on them): {related or 'none'}\n"
         f"The {len(images)} attached screenshots are the last steps, in order."
     )
     try:

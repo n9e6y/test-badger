@@ -295,3 +295,44 @@ async def test_executor_sees_errors_caused_by_last_action(
     )
     after_click = fake.requests["executor"][2].user_text
     assert "console error: Uncaught ReferenceError: undefinedFn is not defined" in after_click
+
+
+async def test_verifier_gets_results_of_dependencies() -> None:
+    res = ScenarioResult(
+        scenario_id="R5",
+        finished="finish_scenario",
+        expected_met=False,
+        observed="Welcome! Your account is ready.",
+    )
+    fake = FakeLLM(
+        {
+            "verifier": [
+                {
+                    "verdict": "BUG_FOUND",
+                    "confidence": "high",
+                    "reasoning": "duplicate accepted",
+                    "is_agent_error": False,
+                    "finding": {
+                        "area": "signup",
+                        "severity": "major",
+                        "title": "Duplicate email accepted",
+                        "expected": "already exists error",
+                        "actual": "Welcome page",
+                    },
+                }
+            ]
+        }
+    )
+    await triage_scenario(
+        scenario=scenario("R5"),
+        template_scenario=None,
+        result=res,
+        llm=fake.client(),
+        load_screenshot=no_shots,
+        finding_id="F1",
+        related="R1 finished with expected_met=True, observed: Welcome!",
+    )
+    prompt = fake.requests["verifier"][0].user_text
+    assert (
+        "RELATED SCENARIOS (this one depends on them): R1 finished with expected_met=True" in prompt
+    )

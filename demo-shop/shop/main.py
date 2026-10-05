@@ -211,12 +211,16 @@ def checkout_errors(data: dict[str, str]) -> dict[str, str]:
     for key, label in labels.items():
         if not data[key]:
             errors[key] = f"{label} is required."
-    if not EMAIL_RE.match(data["email"]):
-        errors["email"] = "Enter a valid email address."
-    if not PHONE_RE.match(data["phone"]):
-        errors["phone"] = "Enter a valid phone number."
-    if not POSTAL_RE.match(data["postal_code"]):
-        errors["postal_code"] = "Enter a valid postal code, e.g. 10115."
+    checks = [
+        ("email", "Email", EMAIL_RE, "Enter a valid email address."),
+        ("phone", "Phone", PHONE_RE, "Enter a valid phone number."),
+        ("postal_code", "Postal code", POSTAL_RE, "Enter a valid postal code, e.g. 10115."),
+    ]
+    for key, label, pattern, invalid in checks:
+        if not data[key]:
+            errors[key] = f"{label} is required."
+        elif not pattern.match(data[key]):
+            errors[key] = invalid
     return errors
 
 
