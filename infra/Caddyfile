@@ -1,0 +1,25 @@
+# Sites come from .env:
+#   local:  APP_SITE=http://localhost        SHOP_SITE=http://shop.localhost
+#   server: APP_SITE=app.<ip>.sslip.io       SHOP_SITE=shop.<ip>.sslip.io   (automatic HTTPS)
+
+{$APP_SITE} {
+	encode zstd gzip
+
+	handle /api/* {
+		# flush_interval -1: never buffer, so SSE (/api/runs/*/events) streams live.
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		root * /srv/frontend
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+{$SHOP_SITE} {
+	encode zstd gzip
+	reverse_proxy shop:8100
+}

@@ -1,0 +1,98 @@
+# ShipCheck stack. Run from the repo root:
+#   docker compose -f infra/docker-compose.yml up -d --build
+# Secrets and per-environment values live in infra/.env (copy from .env.example).
+
+name: shipcheck
+
+x-common: &common
+  restart: unless-stopped
+  env_file: .env
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+services:
+  caddy:
+    <<: *common
+    build:
+      context: ../frontend
+      dockerfile: ../infra/caddy/Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api: { condition: service_healthy }
+      shop: { condition: service_started }
+    networks:
+      default:
+        # Lets the worker reach the public shop hostname through Caddy without hairpin NAT.
+        aliases: ["${SHOP_HOST:-shop.internal}"]
+
+  api:
+    <<: *common
+    build: { context: ../backend, target: api }
+    volumes:
+      - artifacts:/data/artifacts:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  worker:
+    <<: *common
+    build: { context: ../backend, target: worker }
+    volumes:
+      - artifacts:/data/artifacts
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    shm_size: "1gb"  # Chromium needs more than Docker's 64 MB default
+    mem_limit: 3g
+    cpus: 2.0
+
+  shop:
+    <<: *common
+    build: { context: ../demo-shop }
+    volumes:
+      - shop_data:/data
+
+  postgres:
+    <<: *common
+    image: postgres:16-alpine
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    <<: *common
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pg_data:
+  redis_data:
+  artifacts:
+  shop_data:
+  caddy_data:
+  caddy_config:
