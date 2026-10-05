@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     openai_compat_base_url: str = "https://openrouter.ai/api/v1"
     llm_price_overrides: str = "{}"
 
+    # Browser
+    browser_headless: bool = True
+    browser_nav_timeout_ms: int = 30_000
+    browser_action_timeout_ms: int = 5_000
+    tester_user_agent_suffix: str = "ShipCheck/0.1 (pre-release QA agent)"
+
     # Budgets (03 §9)
     max_recon_pages: int = 6
     max_scenarios: int = 8
