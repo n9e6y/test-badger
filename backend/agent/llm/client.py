@@ -119,6 +119,10 @@ def build_providers(settings: Settings) -> dict[str, Provider]:
         providers["anthropic"] = AnthropicProvider(settings.anthropic_api_key)
     if settings.openai_api_key:
         providers["openai"] = OpenAIChatProvider("openai", settings.openai_api_key)
+    if settings.environment == "dev":
+        from agent.llm.providers.sim import SimProvider
+
+        providers["sim"] = SimProvider()  # dev-only rule-based stand-in, never in prod
     if settings.openai_compat_api_key:
         providers["openai_compat"] = OpenAIChatProvider(
             "openai_compat", settings.openai_compat_api_key, settings.openai_compat_base_url

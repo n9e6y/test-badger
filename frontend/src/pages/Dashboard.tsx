@@ -45,6 +45,18 @@ export function Dashboard() {
             <h2 className="font-medium">Try it on our demo shop</h2>
             <p className="text-sm text-muted-foreground">
               A real store with hidden bugs. See what the agent finds in about 5 minutes.
+              {demo && (
+                <>
+                  {' '}
+                  <a href={demo.base_url} target="_blank" rel="noreferrer" className="underline underline-offset-4">
+                    Visit the shop
+                  </a>{' '}
+                  ·{' '}
+                  <Link to={`/app/projects/${demo.id}`} className="underline underline-offset-4">
+                    Run history
+                  </Link>
+                </>
+              )}
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Button onClick={() => startDemo('registration')} disabled={!demo || startRun.isPending}>
@@ -71,9 +83,11 @@ export function Dashboard() {
       <section className="grid gap-3">
         <div className="flex items-center justify-between">
           <h2 className="font-medium">My sites</h2>
-          <Button variant="outline" size="sm" disabled title="Coming soon">
-            <Plus className="size-4" aria-hidden />
-            Add a site
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/app/projects/new">
+              <Plus className="size-4" aria-hidden />
+              Add a site
+            </Link>
           </Button>
         </div>
         {projects.isError ? (
@@ -83,12 +97,21 @@ export function Dashboard() {
         ) : (
           <ul className="divide-y rounded-lg border bg-background">
             {sites.map((p) => (
-              <li key={p.id} className="flex items-center justify-between p-4">
-                <div>
-                  <p className="font-medium">{p.name}</p>
-                  <p className="text-sm text-muted-foreground">{p.base_url}</p>
-                </div>
-                {p.last_run?.overall_verdict && <OverallBadge verdict={p.last_run.overall_verdict} />}
+              <li key={p.id}>
+                <Link to={`/app/projects/${p.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-muted/40">
+                  <div className="min-w-0">
+                    <p className="font-medium">{p.name}</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {p.base_url}
+                      {p.last_run && ` · last run ${formatDate(p.last_run.created_at)}`}
+                    </p>
+                  </div>
+                  {p.last_run?.overall_verdict ? (
+                    <OverallBadge verdict={p.last_run.overall_verdict} />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">No runs yet</span>
+                  )}
+                </Link>
               </li>
             ))}
           </ul>

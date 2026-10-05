@@ -112,3 +112,7 @@ class StepOut(BaseModel):
     console_json: list[Any]
     network_json: list[Any]
     created_at: datetime
+
+
+class ActivityOut(StepOut):
+    scenario_code: str

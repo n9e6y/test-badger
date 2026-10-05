@@ -181,3 +181,41 @@ async def test_credentials_are_encrypted_not_returned(
     await signup(client)
     run = await start(client, test_email="t@example.com", test_password="hunter2-secret")
     assert "hunter2" not in str(run)
+
+
+async def test_activity_feed_lists_recent_steps(client: AsyncClient) -> None:
+    from app.db import get_session
+    from app.models import Scenario, Step
+
+    await signup(client)
+    run = await start(client)
+    override = app.dependency_overrides[get_session]
+    async for session in override():
+        sc = Scenario(
+            run_id=run["id"], code="R1", title="t", kind="happy_path", order=0, expected_result="e"
+        )
+        session.add(sc)
+        await session.flush()
+        session.add_all(
+            [
+                Step(
+                    scenario_id=sc.id,
+                    index=1,
+                    action="navigate",
+                    args_json={"url": "/signup"},
+                    url="http://localhost:8100/signup",
+                ),
+                Step(
+                    scenario_id=sc.id,
+                    index=2,
+                    action="click",
+                    args_json={"ref": 3},
+                    target_label="Create account",
+                    url="http://localhost:8100/signup",
+                ),
+            ]
+        )
+        await session.commit()
+    feed = (await client.get(f"/api/runs/{run['id']}/activity")).json()
+    assert [f["description"] for f in feed] == ["Open /signup", 'Click "Create account"']
+    assert feed[0]["scenario_code"] == "R1"

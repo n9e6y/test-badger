@@ -54,6 +54,13 @@ export interface Project {
   last_run: RunSummary | null
 }
 
+export interface ProjectInput {
+  name: string
+  base_url: string
+  authorized: boolean
+  allowed_origins?: string[]
+}
+
 export interface ProjectDetail extends Project {
   runs: RunSummary[]
 }
@@ -186,4 +193,21 @@ export interface Step {
   console_json: string[]
   network_json: string[]
   created_at: string
+}
+
+export interface ActivityItem extends Step {
+  scenario_code: string
+}
+
+// Live SSE events (04 §4.1)
+export interface StepEvent {
+  scenario_id: string
+  index: number
+  action: string
+  description: string
+  reasoning: string
+  ok: boolean
+  url: string
+  screenshot_id: string | null
+  screenshot_url?: string
 }

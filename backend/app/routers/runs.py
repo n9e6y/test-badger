@@ -4,7 +4,8 @@ import json
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,12 +13,21 @@ from agent.browser.tools import describe_action
 from agent.orchestrator import public_site_url, to_public_url
 from app.config import get_settings
 from app.db import get_session
+from app.events import open_subscription, sse_stream
 from app.models import Project, Run, Scenario, Step, User
 from app.queue import JobQueue, get_queue
 from app.routers.projects import run_summaries, visible_project
-from app.schemas.runs import PlanPatch, RunIn, RunOut, RunSummary, ScenarioOut, StepOut
+from app.schemas.runs import (
+    ActivityOut,
+    PlanPatch,
+    RunIn,
+    RunOut,
+    RunSummary,
+    ScenarioOut,
+    StepOut,
+)
 from app.security import CurrentUser, encrypt_secret
-from app.services.runs import ACTIVE, STATUS_MESSAGES, set_status
+from app.services.runs import ACTIVE, STATUS_MESSAGES, TERMINAL, set_status
 
 router = APIRouter(tags=["runs"])
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -167,3 +177,48 @@ async def scenario_steps(
         item.url = to_public_url(project, s.url)
         out.append(item)
     return out
+
+
+@router.get("/runs/{run_id}/activity", response_model=list[ActivityOut])
+async def run_activity(
+    run_id: str, user: CurrentUser, session: Session, limit: int = 40
+) -> list[ActivityOut]:
+    """Latest steps across all scenarios, oldest first — seeds the live feed after a reload."""
+    run = await owned_run(session, run_id, user)
+    project = await session.get(Project, run.project_id)
+    assert project is not None
+    rows = (await session.execute(
+        select(Step, Scenario.code).join(Scenario, Step.scenario_id == Scenario.id)
+        .where(Scenario.run_id == run.id)
+        .order_by(Step.created_at.desc()).limit(min(limit, 100))
+    )).all()  # fmt: skip
+    out = []
+    for step, code in reversed(rows):
+        item = ActivityOut(**StepOut.model_validate(step).model_dump(), scenario_code=code)
+        item.description = describe_action(
+            step.action, step.args_json, step.target_label, step.url or ""
+        )
+        item.url = to_public_url(project, step.url)
+        out.append(item)
+    return out
+
+
+@router.get("/runs/{run_id}/events")
+async def run_events(
+    run_id: str, request: Request, user: CurrentUser, session: Session
+) -> StreamingResponse:
+    """SSE: a `snapshot` event with the full current state, then live events (04 §4.1).
+    We subscribe before reading the snapshot so no event can fall in between."""
+    run = await owned_run(session, run_id, user)
+    pubsub = await open_subscription(run.id)
+    snapshot = (await run_out(session, run)).model_dump(mode="json")
+    return StreamingResponse(
+        sse_stream(
+            pubsub,
+            snapshot,
+            done=snapshot["status"] in TERMINAL,
+            is_disconnected=request.is_disconnected,
+        ),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

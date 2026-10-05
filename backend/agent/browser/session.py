@@ -150,7 +150,12 @@ class BrowserSession:
 
     def _attach_listeners(self, page: Page) -> None:
         page.on("console", self._on_console)
-        page.on("pageerror", lambda exc: self._signals.console_errors.append(f"Uncaught {exc}"))
+        page.on(
+            "pageerror",
+            lambda exc: self._signals.console_errors.append(
+                f"Uncaught {exc.name}: {exc.message}"[:300] if exc.name else f"Uncaught {exc}"[:300]
+            ),
+        )
         page.on("response", self._on_response)
         page.on("requestfailed", self._on_request_failed)
 

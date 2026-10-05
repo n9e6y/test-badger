@@ -128,3 +128,10 @@
     @apply font-sans;
     }
 }
+/* Print / Save as PDF (S5): only the report, on white */
+@media print {
+  header, nav, .print\:hidden { display: none !important; }
+  body, .bg-muted\/30 { background: white !important; }
+  main { max-width: none !important; padding: 0 !important; }
+  article, section { break-inside: avoid; }
+}

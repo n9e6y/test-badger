@@ -260,3 +260,38 @@ async def test_report_counts_verdict_and_writer_fallback() -> None:
     assert report.headline == "All tested flows work"
     assert report.coverage_note == "1 of 2 checks could not be completed."
     assert report.counts == {"passed": 1, "bug_found": 0, "blocked": 0, "inconclusive": 1}
+
+
+async def test_executor_sees_errors_caused_by_last_action(
+    session: BrowserSession, site: str
+) -> None:
+    probe = BrowserTools(session)
+    await probe.run("navigate", {"url": f"{site}/form.html"})
+    await probe.run("dismiss_overlay", {})
+    broken = (await session.snapshot()).find("Broken")
+    assert broken is not None
+    fake = FakeLLM(
+        {
+            "executor": [
+                tc("dismiss_overlay"),
+                tc("click", ref=broken.ref),
+                ToolCall(
+                    name="finish_scenario",
+                    args={"expected_met": False, "observed": "JS error", "notes": ""},
+                ),
+            ]
+        }
+    )
+    await execute_scenario(
+        scenario=scenario(),
+        base_url=site,
+        clean_state=True,
+        session=session,
+        tools=BrowserTools(session),
+        llm=fake.client(),
+        ctx=MemoryContext(),
+        max_steps=10,
+        deadline=time.monotonic() + 60,
+    )
+    after_click = fake.requests["executor"][2].user_text
+    assert "console error: Uncaught ReferenceError: undefinedFn is not defined" in after_click

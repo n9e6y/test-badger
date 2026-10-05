@@ -17,5 +17,8 @@ of the current page (elements are listed with refs like [12]). Then:
   keep exploring. Set expected_met to true or false and describe what you observed factually
   (quote error messages, totals, page titles). If the site behaves wrongly, that is a valid
   result: finish with expected_met=false; do not try to work around the bug.
+- "NEW SINCE LAST STEP" lists console errors and failed requests caused by your last action.
+  If an action had no visible effect and produced an error there, that is evidence of a bug:
+  finish with expected_met=false and quote the error instead of retrying.
 - If an action fails, look at the new observation and try a different approach; do not repeat
   the same failing action.

@@ -11,6 +11,7 @@ import openai
 
 from agent.llm.prices import estimate_cost
 from agent.llm.types import (
+    LLMError,
     LLMOutputError,
     LLMRefusal,
     LLMRequest,
@@ -85,9 +86,10 @@ class OpenAIChatProvider:
                 raise LLMUnavailable(msg) from exc
             if exc.status_code == 402:
                 raise LLMUnavailable(f"{self.name} account is out of credits (402)") from exc
-            if exc.status_code >= 500:
-                raise LLMUnavailable(f"{self.name} server error {exc.status_code}") from exc
-            raise
+            if exc.status_code >= 500 or (exc.status_code == 404 and "No endpoints" in str(exc)):
+                # 404 "No endpoints found" = every upstream that supports our params is down.
+                raise LLMUnavailable(f"{self.name} unavailable ({exc.status_code})") from exc
+            raise LLMError(f"{self.name} rejected the request ({exc.status_code})") from exc
 
         if not resp.choices:
             raise LLMUnavailable(f"{self.name} returned no choices")

@@ -129,6 +129,13 @@ def _history_text(steps: list[StepRecord]) -> str:
     return "\n".join(lines)
 
 
+def _signals_line(step: StepRecord) -> str:
+    """What the browser reported after the last action (console errors, failed requests)."""
+    parts = [f"console error: {e}" for e in step.console_errors[:3]]
+    parts += [f"failed request: {e}" for e in step.http_errors[:3]]
+    return "; ".join(parts) if parts else "no console errors or failed requests"
+
+
 def _scenario_text(s: Scenario) -> str:
     steps = "\n".join(f"  {i}. {x}" for i, x in enumerate(s.steps_intent, 1))
     return (
@@ -212,7 +219,8 @@ async def execute_scenario(
         if blocker := session.blocker(snap):
             result.finished, result.blocked_reason = "report_blocked", blocker
             break
-        observation = format_snapshot(snap)
+        signals_line = _signals_line(steps[-1]) if steps else ""
+        observation = format_snapshot(snap, signals_line)
         images: list[bytes] = []
         if len(snap.elements) < 3 or (len(steps) >= 2 and not steps[-1].ok and not steps[-2].ok):
             images = [await _jpeg(session)]  # vision fallback (03 §5.1)

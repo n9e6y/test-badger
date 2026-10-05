@@ -36,6 +36,16 @@ class DbRunContext:
         self.run_id = run_id
         self._dir = Path(get_settings().artifacts_dir) / run_id
         self._scenario_ids: dict[str, str] = {}
+        self._project_row: Project | None = None
+
+    async def _project(self) -> Project:
+        if self._project_row is None:
+            async with SessionLocal() as s:
+                run = await s.get(Run, self.run_id)
+                assert run is not None
+                self._project_row = await s.get(Project, run.project_id)
+        assert self._project_row is not None
+        return self._project_row
 
     async def _scenario_db_id(self, code: str) -> str | None:
         if code not in self._scenario_ids:
@@ -65,6 +75,8 @@ class DbRunContext:
                         await s.commit()
         if event == "step" and payload.get("screenshot_id"):
             payload = {**payload, "screenshot_url": f"/api/artifacts/{payload['screenshot_id']}"}
+        if event in ("step", "recon.page") and payload.get("url"):
+            payload = {**payload, "url": to_public_url(await self._project(), payload["url"])}
         await publish(self.run_id, event, payload)
 
     async def save_screenshot(self, data: bytes) -> str:

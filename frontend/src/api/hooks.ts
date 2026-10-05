@@ -2,8 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api, ApiError, post } from './client'
 import type {
+  ActivityItem,
   LoginInput,
   Project,
+  ProjectDetail,
+  ProjectInput,
   Run,
   RunStatus,
   RunSummary,
@@ -59,7 +62,7 @@ export function useLogout() {
 
 // ---------- projects & runs ----------
 
-const TERMINAL: RunStatus[] = ['COMPLETED', 'FAILED', 'CANCELLED']
+export const TERMINAL: RunStatus[] = ['COMPLETED', 'FAILED', 'CANCELLED']
 
 export function useProjects() {
   return useQuery({ queryKey: ['projects'], queryFn: () => api<Project[]>('/projects') })
@@ -69,12 +72,22 @@ export function useRecentRuns() {
   return useQuery({ queryKey: ['runs', 'recent'], queryFn: () => api<RunSummary[]>('/runs') })
 }
 
-export function useRun(runId: string) {
+export function useRun(runId: string, sseConnected = false) {
   return useQuery({
     queryKey: ['run', runId],
     queryFn: () => api<Run>(`/runs/${runId}`),
-    // Polling every 2 s while the run is active (SSE replaces this on Day 4, polling stays as fallback).
-    refetchInterval: (q) => (q.state.data && TERMINAL.includes(q.state.data.status) ? false : 2000),
+    // SSE keeps the cache fresh; polling is the fallback (2 s without SSE, a slow safety net with it).
+    refetchInterval: (q) =>
+      q.state.data && TERMINAL.includes(q.state.data.status) ? false : sseConnected ? 15_000 : 2_000,
+  })
+}
+
+export function useActivity(runId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['activity', runId],
+    queryFn: () => api<ActivityItem[]>(`/runs/${runId}/activity`),
+    enabled,
+    staleTime: Infinity, // seeded once; live events append to it
   })
 }
 
@@ -111,3 +124,18 @@ function useRunAction(path: (id: string) => string, method: 'POST' | 'PATCH' = '
 export const useApproveRun = () => useRunAction((id) => `/runs/${id}/approve`)
 export const useCancelRun = () => useRunAction((id) => `/runs/${id}/cancel`)
 export const usePatchPlan = () => useRunAction((id) => `/runs/${id}/plan`, 'PATCH')
+
+export function useProject(projectId: string) {
+  return useQuery({
+    queryKey: ['project', projectId],
+    queryFn: () => api<ProjectDetail>(`/projects/${projectId}`),
+  })
+}
+
+export function useCreateProject() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: ProjectInput) => post<Project>('/projects', input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['projects'] }),
+  })
+}

@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Login, Signup } from '@/pages/Auth'
 import { Dashboard } from '@/pages/Dashboard'
 import { Landing } from '@/pages/Landing'
+import { NewProject } from '@/pages/NewProject'
+import { NewRun } from '@/pages/NewRun'
+import { ProjectPage } from '@/pages/ProjectPage'
 import { RunPage } from '@/pages/RunPage'
 
 function NotFound() {
@@ -26,6 +29,9 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/app" element={<AppLayout />}>
         <Route index element={<Dashboard />} />
+        <Route path="projects/new" element={<NewProject />} />
+        <Route path="projects/:projectId" element={<ProjectPage />} />
+        <Route path="projects/:projectId/runs/new" element={<NewRun />} />
         <Route path="runs/:runId" element={<RunPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />

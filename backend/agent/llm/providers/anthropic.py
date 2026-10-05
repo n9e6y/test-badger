@@ -9,7 +9,14 @@ from typing import Any
 import anthropic
 
 from agent.llm.prices import estimate_cost
-from agent.llm.types import LLMRefusal, LLMRequest, LLMResponse, LLMUnavailable, ToolCall
+from agent.llm.types import (
+    LLMError,
+    LLMRefusal,
+    LLMRequest,
+    LLMResponse,
+    LLMUnavailable,
+    ToolCall,
+)
 
 # Models that run adaptive thinking and accept output_config.effort.
 _EFFORT_MODELS = ("claude-opus-5", "claude-sonnet-5", "claude-fable-5")
@@ -80,7 +87,7 @@ class AnthropicProvider:
                 raise LLMUnavailable("Anthropic account is out of credits (402)") from exc
             if exc.status_code >= 500:
                 raise LLMUnavailable(f"Anthropic server error {exc.status_code}") from exc
-            raise
+            raise LLMError(f"Anthropic rejected the request ({exc.status_code})") from exc
 
         if msg.stop_reason == "refusal":
             raise LLMRefusal("the model declined this request")

@@ -177,3 +177,43 @@ async def test_fallback_model_then_backoff(monkeypatch: pytest.MonkeyPatch) -> N
     )
     with pytest.raises(LLMUnavailable):
         await always_down.call("executor", "s", "u")
+
+
+async def test_openai_provider_maps_http_errors() -> None:
+    import httpx2 as httpx  # the openai SDK's HTTP layer
+    import openai
+
+    from agent.llm.providers.openai_chat import OpenAIChatProvider
+    from agent.llm.types import LLMRequest
+
+    def responder(status: int, message: str):  # type: ignore[no-untyped-def]
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(status, json={"error": {"message": message, "code": status}})
+
+        return handler
+
+    req = LLMRequest(model="m", system="s", user_text="u")
+    for status, message, expected in [
+        (404, "No endpoints found that can handle the requested parameters", LLMUnavailable),
+        (402, "more credits", LLMUnavailable),
+        (400, "bad schema", LLMError),
+    ]:
+        provider = OpenAIChatProvider("openai_compat", "k", "https://openrouter.ai/api/v1")
+        provider._client = openai.AsyncOpenAI(
+            api_key="k",
+            base_url="https://openrouter.ai/api/v1",
+            max_retries=0,
+            http_client=openai.DefaultAsyncHttpxClient(
+                transport=httpx.MockTransport(responder(status, message))
+            ),
+        )
+        with pytest.raises(expected):
+            await provider.generate(req)
+
+
+def test_sim_provider_only_in_dev(monkeypatch: pytest.MonkeyPatch) -> None:
+    from agent.llm.client import build_providers
+    from app.config import Settings
+
+    assert "sim" in build_providers(Settings(environment="dev"))
+    assert "sim" not in build_providers(Settings(environment="prod"))
