@@ -12,7 +12,9 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY . .
-RUN useradd --create-home --uid 1000 app && mkdir -p /data/artifacts && chown -R app /data
+# Same uid as the worker's pwuser (1001): both share the artifacts volume, and Docker gives a
+# new volume the owner of whichever container mounts it first.
+RUN useradd --create-home --uid 1001 app && mkdir -p /data/artifacts && chown -R app /data
 USER app
 EXPOSE 8000
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]
