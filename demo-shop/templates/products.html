@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Shop — Pine &amp; Pebble{% endblock %}
+{% block content %}
+<h1>All products</h1>
+<div class="spinner" id="catalog-spinner" role="status" aria-label="Loading products"><span></span> Loading products…</div>
+<div class="grid" id="catalog-grid" hidden>
+  {% for p in products %}{% include "_product_card.html" %}{% endfor %}
+</div>
+{% endblock %}

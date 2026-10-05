@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Become a partner — Pine &amp; Pebble{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>Become a partner</h1>
+  <p class="muted">Makers and shops: apply to sell with us or stock our products.</p>
+  <form method="post" action="/partners/apply" class="form-card" novalidate>
+    {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+    <div class="field"><label for="company">Company name</label><input id="company" name="company"></div>
+    <div class="field"><label for="p-email">Email</label><input id="p-email" name="email" type="email"></div>
+    <div class="field"><label for="about">Tell us about your work</label><textarea id="about" name="about" rows="4"></textarea></div>
+    <div class="g-recaptcha" data-sitekey="demo">
+      <iframe title="reCAPTCHA" src="/partners/captcha" width="304" height="78" name="a-recaptcha-frame"></iframe>
+    </div>
+    <button type="submit" class="btn btn-lg btn-block">Send application</button>
+  </form>
+</div>
+{% endblock %}

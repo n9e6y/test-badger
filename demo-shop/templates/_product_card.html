@@ -1,0 +1,9 @@
+<a class="product-card" href="/products/{{ p.slug }}">
+  <div class="product-img">
+    <img src="/static/img/{{ p.slug }}.svg" alt="{{ p.name }}" width="320" height="240">
+    {% if p.on_sale %}<span class="badge badge-sale">Sale</span>{% endif %}
+    {% if p.stock == 0 %}<span class="badge badge-muted">Sold out</span>{% endif %}
+  </div>
+  <h3>{{ p.name }}</h3>
+  <p class="price">{{ p.price_cents | eur }}</p>
+</a>

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}My account — Pine &amp; Pebble{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>Hello, {{ user.name }}</h1>
+  <p class="muted">Signed in as {{ user.email }}</p>
+  <div class="form-card">
+    <h2>Your orders</h2>
+    <p class="muted">You haven't placed any orders yet.</p>
+    <a href="/products" class="btn">Browse the shop</a>
+  </div>
+  <form method="post" action="/logout"><button type="submit" class="link-btn">Log out</button></form>
+</div>
+{% endblock %}

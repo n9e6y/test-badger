@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Log in — Pine &amp; Pebble{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>Log in</h1>
+  <form method="post" action="/login" class="form-card" novalidate>
+    {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="email" value="{{ email }}">
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn btn-lg btn-block">Log in</button>
+  </form>
+  <p class="center">New here? <a href="/signup">Create an account</a></p>
+</div>
+{% endblock %}

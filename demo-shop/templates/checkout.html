@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Checkout — Pine &amp; Pebble{% endblock %}
+{% block content %}
+<h1>Checkout</h1>
+<p class="steps"><strong>1. Shipping</strong> → 2. Payment</p>
+<div class="cart-layout">
+  <form method="post" action="/checkout" class="form-card" id="checkout-form" novalidate
+        {% if switches.B9 %}data-strict-postal{% endif %}>
+    {% macro field(name, label, type="text", autocomplete="") %}
+      <div class="field {{ 'has-error' if errors[name] }}">
+        <label for="{{ name }}">{{ label }}</label>
+        <input id="{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ data[name] }}"
+               autocomplete="{{ autocomplete }}"
+               {% if errors[name] %}aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}>
+        {% if errors[name] %}<p class="field-error" id="{{ name }}-error">{{ errors[name] }}</p>{% endif %}
+      </div>
+    {% endmacro %}
+    {{ field("full_name", "Full name", autocomplete="name") }}
+    {{ field("email", "Email", "email", "email") }}
+    {{ field("phone", "Phone", "tel", "tel") }}
+    {{ field("address", "Street address", autocomplete="street-address") }}
+    <div class="row-2">
+      {{ field("city", "City", autocomplete="address-level2") }}
+      {{ field("postal_code", "Postal code", autocomplete="postal-code") }}
+    </div>
+    <button type="submit" class="btn btn-lg btn-block" id="continue-btn">Continue to payment</button>
+  </form>
+  {% include "_order_summary.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Create account — Pine &amp; Pebble{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>Create account</h1>
+  <p class="muted">Save your details for faster checkout and track your orders.</p>
+  <form method="post" action="/signup" class="form-card" novalidate>
+    {% macro field(name, label, type="text", autocomplete="") %}
+      <div class="field {{ 'has-error' if errors[name] }}">
+        <label for="{{ name }}">{{ label }} <span class="req" aria-hidden="true">*</span></label>
+        <input id="{{ name }}" name="{{ name }}" type="{{ type }}" autocomplete="{{ autocomplete }}"
+               value="{{ data[name] if type != 'password' and data[name] else '' }}"
+               {% if errors[name] %}aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}>
+        {% if errors[name] %}<p class="field-error" id="{{ name }}-error">{{ errors[name] }}</p>{% endif %}
+      </div>
+    {% endmacro %}
+    {{ field("full_name", "Full name", autocomplete="name") }}
+    {{ field("email", "Email", "email", "email") }}
+    {{ field("password", "Password", "password", "new-password") }}
+    {{ field("confirm_password", "Confirm password", "password", "new-password") }}
+    <p class="hint">At least 8 characters.</p>
+    <button type="submit" class="btn btn-lg btn-block">Create account</button>
+  </form>
+  <p class="center">Already have an account? <a href="/login">Log in</a></p>
+</div>
+{% endblock %}

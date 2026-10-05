@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>reCAPTCHA</title>
+<style>
+  body{margin:0;font:14px Roboto,Arial,sans-serif}
+  .box{display:flex;align-items:center;justify-content:space-between;width:300px;height:74px;
+       border:1px solid #d3d3d3;border-radius:3px;background:#f9f9f9;box-sizing:border-box;padding:0 12px}
+  .check{display:flex;align-items:center;gap:12px}
+  .tick{width:24px;height:24px;border:2px solid #c1c1c1;border-radius:2px;background:#fff}
+  .logo{text-align:center;font-size:10px;color:#555}
+</style></head>
+<body>
+  <div class="box" id="recaptcha-anchor" role="checkbox" aria-checked="false" aria-label="I'm not a robot">
+    <div class="check"><div class="tick"></div><span>I'm not a robot</span></div>
+    <div class="logo">reCAPTCHA<br>Privacy - Terms</div>
+  </div>
+  <script>
+    document.getElementById('recaptcha-anchor').onclick = () => {
+      document.body.innerHTML = '<p style="padding:12px">Select all images with traffic lights. (Verification unavailable)</p>'
+    }
+  </script>
+</body></html>

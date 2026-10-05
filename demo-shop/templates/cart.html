@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Your cart — Pine &amp; Pebble{% endblock %}
+{% block content %}
+<h1>Your cart</h1>
+{% if not cart.lines %}
+  <div class="empty">
+    <p>Your cart is empty.</p>
+    <a href="/products" class="btn">Continue shopping</a>
+  </div>
+{% else %}
+<div class="cart-layout">
+  <table class="cart-table">
+    <thead><tr><th>Product</th><th>Price</th><th>Quantity</th><th>Total</th><th><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+    {% for line in cart.lines %}
+      <tr data-line="{{ line.product.slug }}">
+        <td class="cart-product">
+          <img src="/static/img/{{ line.product.slug }}.svg" alt="" width="64" height="48">
+          <a href="/products/{{ line.product.slug }}">{{ line.product.name }}</a>
+        </td>
+        <td>{{ line.product.price_cents | eur }}</td>
+        <td>
+          <form method="post" action="/cart/update" class="qty-form" novalidate>
+            <input type="hidden" name="slug" value="{{ line.product.slug }}">
+            <label for="qty-{{ loop.index }}" class="sr-only">Quantity for {{ line.product.name }}</label>
+            <input id="qty-{{ loop.index }}" name="quantity" type="number" value="{{ line.qty }}" inputmode="numeric">
+            <button type="submit" class="btn btn-ghost btn-sm">Update</button>
+          </form>
+        </td>
+        <td class="line-total">{{ line.total | eur }}</td>
+        <td>
+          {# B5: the buggy branch calls a function that shop.js never defines #}
+          <button type="button" class="link-btn"
+                  onclick="{{ 'removeLine' if switches.B5 else 'removeCartItem' }}('{{ line.product.slug }}')">Remove</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <aside class="summary">
+    <form method="post" action="/cart/coupon" class="coupon-form">
+      <label for="coupon">Coupon code</label>
+      <div class="row">
+        <input id="coupon" name="code" type="text" autocomplete="off" value="{{ cart.coupon or '' }}">
+        <button type="submit" class="btn btn-ghost">Apply</button>
+      </div>
+    </form>
+    <dl>
+      <div><dt>Subtotal</dt><dd>{{ cart.subtotal | eur }}</dd></div>
+      {% if cart.discount %}<div><dt>Discount ({{ cart.coupon }}, {{ cart.percent }}%)</dt><dd>−{{ cart.discount | eur }}</dd></div>{% endif %}
+      <div><dt>Shipping</dt><dd>{{ 'Free' if not cart.shipping else cart.shipping | eur }}</dd></div>
+      <div class="total"><dt>Total</dt><dd id="cart-total">{{ cart.total | eur }}</dd></div>
+    </dl>
+    <a href="/checkout" class="btn btn-lg btn-block">Go to checkout</a>
+  </aside>
+</div>
+{% endif %}
+{% endblock %}

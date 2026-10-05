@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Autumn collection</p>
+    <h1>Simple things for a slower home</h1>
+    <p>Mugs, linens and wood pieces made in small batches by makers we know by name.</p>
+    <a href="/products" class="btn btn-lg">Shop the collection</a>
+  </div>
+  <img src="/static/img/hero.svg" alt="" width="480" height="320">
+</section>
+
+<section>
+  <h2>Featured</h2>
+  <div class="grid">
+    {% for p in products %}{% include "_product_card.html" %}{% endfor %}
+  </div>
+</section>
+
+<section class="perks">
+  <div><strong>Free shipping</strong><span>on orders over €50</span></div>
+  <div><strong>30-day returns</strong><span>no questions asked</span></div>
+  <div><strong>New here?</strong><span>Use WELCOME10 for 10% off</span></div>
+</section>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} — Pine &amp; Pebble{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="/products">Shop</a> / {{ product.name }}</p>
+<div class="product-detail">
+  <div class="product-img large">
+    <img src="/static/img/{{ product.slug }}.svg" alt="{{ product.name }}" width="560" height="420">
+    {% if product.on_sale %}<span class="badge badge-sale">Sale</span>{% endif %}
+  </div>
+  <div>
+    <h1>{{ product.name }}</h1>
+    <p class="price large">{{ product.price_cents | eur }}</p>
+    <p>{{ product.blurb }}</p>
+    {% set sold_out = product.stock == 0 %}
+    <p class="stock {{ 'out' if sold_out else 'in' }}">
+      {% if sold_out %}Out of stock{% elif product.stock <= 5 %}Only {{ product.stock }} left{% else %}In stock{% endif %}
+    </p>
+    <form method="post" action="/cart/add" class="add-form" novalidate>
+      <input type="hidden" name="slug" value="{{ product.slug }}">
+      <label for="quantity">Quantity</label>
+      <input id="quantity" name="quantity" type="number" value="1" inputmode="numeric">
+      {% if sold_out and not switches.B8 %}
+        <button type="submit" class="btn btn-lg" disabled>Out of stock</button>
+      {% else %}
+        <button type="submit" class="btn btn-lg">Add to cart</button>
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block modals %}
+{% if switches.D2 %}
+<div class="modal-backdrop" id="newsletter" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nl-title">
+    <button type="button" class="modal-close" aria-label="Close" data-close-newsletter>×</button>
+    <h2 id="nl-title">Get 10% off your first order</h2>
+    <p>Join our newsletter for new arrivals and maker stories.</p>
+    <form onsubmit="return false" class="nl-form">
+      <label for="nl-email" class="sr-only">Email</label>
+      <input id="nl-email" type="email" placeholder="you@example.com">
+      <button type="button" class="btn" data-close-newsletter>Subscribe</button>
+    </form>
+    <button type="button" class="link-btn" data-close-newsletter>No thanks</button>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

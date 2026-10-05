@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Admin — Pine &amp; Pebble{% endblock %}
+{% block content %}
+<h1>Demo control panel</h1>
+<p class="muted">For the ShipCheck team only. Changes apply immediately to every visitor.</p>
+<form method="post" action="/__admin?token={{ token }}" class="form-card">
+  <h2>Planted bugs</h2>
+  {% for key, label in bugs.items() %}
+    <label class="switch"><input type="checkbox" name="{{ key }}" {{ 'checked' if switches[key] }}> <strong>{{ key }}</strong> {{ label }}</label>
+  {% endfor %}
+  <h2>Distractors</h2>
+  {% for key, label in distractors.items() %}
+    <label class="switch"><input type="checkbox" name="{{ key }}" {{ 'checked' if switches[key] }}> <strong>{{ key }}</strong> {{ label }}</label>
+  {% endfor %}
+  <div class="row">
+    <button name="action" value="save" class="btn">Save switches</button>
+    <button name="action" value="clean" class="btn btn-ghost">Clean mode (all bugs off)</button>
+    <button name="action" value="all_bugs" class="btn btn-ghost">All bugs on</button>
+    <button name="action" value="reset" class="btn btn-ghost">Reset data (delete accounts)</button>
+  </div>
+</form>
+{% endblock %}

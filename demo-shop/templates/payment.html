@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Payment — Pine &amp; Pebble{% endblock %}
+{% block content %}
+<h1>Payment</h1>
+<p class="steps">1. Shipping → <strong>2. Payment</strong></p>
+<div class="cart-layout">
+  <form class="form-card" id="payment-form" onsubmit="return false" novalidate>
+    <p class="muted">Shipping to {{ shipping.full_name }}, {{ shipping.address }}, {{ shipping.postal_code }} {{ shipping.city }}</p>
+    <div class="field">
+      <label for="card-name">Name on card</label>
+      <input id="card-name" name="cc-name" autocomplete="cc-name">
+    </div>
+    <div class="field">
+      <label for="card-number">Card number</label>
+      <input id="card-number" name="cardnumber" autocomplete="cc-number" inputmode="numeric" placeholder="1234 5678 9012 3456">
+    </div>
+    <div class="row-2">
+      <div class="field">
+        <label for="card-exp">Expiry (MM/YY)</label>
+        <input id="card-exp" name="cc-exp" autocomplete="cc-exp" placeholder="MM/YY">
+      </div>
+      <div class="field">
+        <label for="card-cvc">CVC</label>
+        <input id="card-cvc" name="cvc" autocomplete="cc-csc" inputmode="numeric">
+      </div>
+    </div>
+    <button type="button" class="btn btn-lg btn-block" id="pay-now">Pay now {{ cart.total | eur }}</button>
+    <p class="flash flash-info" id="pay-disabled" role="status" hidden>Payments are disabled in this demo.</p>
+  </form>
+  {% include "_order_summary.html" %}
+</div>
+{% endblock %}
