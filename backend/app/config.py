@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     llm_planner: str = "anthropic:claude-sonnet-5-5"
     llm_executor: str = "anthropic:claude-sonnet-5-5"
     llm_verifier: str = "anthropic:claude-sonnet-5-5"
-    llm_reporter: str = "anthropic:claude-haiku-4-5-20251001"
+    llm_reporter: str = "anthropic:claude-haiku-4-5"
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     openai_compat_api_key: str = ""
