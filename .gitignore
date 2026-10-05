@@ -1,3 +1,33 @@
+# Planning kit and Claude context (local only, never commit)
 /introductionary
+/project_documentation
+/project_repo_starter
+/claude_context
+/.claude
+CLAUDE.local.md
+**/CLAUDE.md
+
+# Python env and caches
+/buildX
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+
+# Secrets and local data
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+artifacts/
+
+# OS / editors
 .DS_Store
 .idea
+.vscode/
