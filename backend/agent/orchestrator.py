@@ -139,6 +139,7 @@ async def _record_llm_call(rec: LLMCallRecord) -> None:
                 stage=rec.stage,
                 provider=rec.provider,
                 model=rec.model,
+                tokens_cached=rec.tokens_cached,
                 tokens_in=rec.tokens_in,
                 tokens_out=rec.tokens_out,
                 cost_usd=rec.cost_usd,

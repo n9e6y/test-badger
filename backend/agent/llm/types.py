@@ -40,6 +40,7 @@ class LLMResponse(BaseModel):
     tool_calls: list[ToolCall] = Field(default_factory=list)
     tokens_in: int = 0
     tokens_out: int = 0
+    tokens_cached: int = 0  # input tokens served from the prompt cache
     cost_usd: float | None = None  # set when the provider reports cost (OpenRouter)
     stop_reason: str | None = None
     model: str = ""

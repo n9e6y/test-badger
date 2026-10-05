@@ -165,6 +165,7 @@ class LLMCall(Base):
     model: Mapped[str] = mapped_column(String(100))
     tokens_in: Mapped[int] = mapped_column(Integer, default=0)
     tokens_out: Mapped[int] = mapped_column(Integer, default=0)
+    tokens_cached: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
     latency_ms: Mapped[int] = mapped_column(Integer, default=0)
     ok: Mapped[bool] = mapped_column(Boolean, default=True)

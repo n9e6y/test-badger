@@ -48,7 +48,10 @@ class AnthropicProvider:
         params: dict[str, Any] = {
             "model": req.model,
             "max_tokens": req.max_tokens,
-            "system": req.system,
+            # Cache the fixed prefix (tools + system prompt); cached reads cost ~10x less.
+            "system": [
+                {"type": "text", "text": req.system, "cache_control": {"type": "ephemeral"}}
+            ],
             "messages": [{"role": "user", "content": content}],
         }
         if req.tools:
@@ -99,14 +102,17 @@ class AnthropicProvider:
             for b in msg.content
             if b.type == "tool_use"
         ]
-        tokens_in = msg.usage.input_tokens + (msg.usage.cache_read_input_tokens or 0)
+        cached = msg.usage.cache_read_input_tokens or 0
+        tokens_in = msg.usage.input_tokens + cached + (msg.usage.cache_creation_input_tokens or 0)
         tokens_out = msg.usage.output_tokens
         return LLMResponse(
             text=text,
             tool_calls=calls,
             tokens_in=tokens_in,
             tokens_out=tokens_out,
-            cost_usd=await estimate_cost(msg.model, tokens_in, tokens_out),
+            tokens_cached=cached,
+            cost_usd=await estimate_cost(msg.model, tokens_in - cached, tokens_out)
+            + await estimate_cost(msg.model, cached, 0) * 0.1,
             stop_reason=msg.stop_reason,
             model=msg.model,
         )

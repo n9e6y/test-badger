@@ -76,6 +76,7 @@ class LLMCallRecord:
     cost_usd: float
     latency_ms: int
     ok: bool
+    tokens_cached: int = 0
 
 
 Recorder = Callable[[LLMCallRecord], Awaitable[None]]
@@ -250,9 +251,9 @@ class LLMClient:
                 self.totals.tokens_out += resp.tokens_out
                 self.totals.cost_usd += cost
             logger.info(
-                "llm call run=%s stage=%s %s:%s ok=%s in=%s out=%s cost=$%.4f %sms",
-                self.run_id, stage, provider.name, model, ok,
-                resp.tokens_in if resp else 0, resp.tokens_out if resp else 0, cost, latency,
+                "llm call run=%s stage=%s %s:%s ok=%s in=%s (cached %s) out=%s cost=$%.4f %sms",
+                self.run_id, stage, provider.name, model, ok, resp.tokens_in if resp else 0,
+                resp.tokens_cached if resp else 0, resp.tokens_out if resp else 0, cost, latency,
             )  # fmt: skip
             if self.recorder is not None:
                 await self.recorder(
@@ -266,6 +267,7 @@ class LLMClient:
                         cost_usd=cost,
                         latency_ms=latency,
                         ok=ok,
+                        tokens_cached=resp.tokens_cached if resp else 0,
                     )
                 )
 

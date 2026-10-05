@@ -28,6 +28,13 @@ class OpenAIChatProvider:
         self._is_openrouter = bool(base_url and "openrouter.ai" in base_url)
         self._client = openai.AsyncOpenAI(api_key=api_key, base_url=base_url, max_retries=2)
 
+    def _system(self, req: LLMRequest) -> str | list[dict[str, Any]]:
+        """Claude via OpenRouter: mark the fixed prefix (tools + system prompt, identical on every
+        executor step) as cacheable. Cached reads cost ~10x less. Other models cache implicitly."""
+        if self._is_openrouter and req.model.startswith("anthropic/"):
+            return [{"type": "text", "text": req.system, "cache_control": {"type": "ephemeral"}}]
+        return req.system
+
     async def generate(self, req: LLMRequest) -> LLMResponse:
         content: list[dict[str, Any]] = [{"type": "text", "text": req.user_text}]
         content += [
@@ -41,7 +48,7 @@ class OpenAIChatProvider:
             "model": req.model,
             "max_tokens": req.max_tokens,
             "messages": [
-                {"role": "system", "content": req.system},
+                {"role": "system", "content": self._system(req)},
                 {"role": "user", "content": content},
             ],
         }
@@ -107,6 +114,8 @@ class OpenAIChatProvider:
 
         usage = resp.usage
         tokens_in = usage.prompt_tokens if usage else 0
+        details = getattr(usage, "prompt_tokens_details", None) if usage else None
+        tokens_cached = int(getattr(details, "cached_tokens", 0) or 0)
         tokens_out = usage.completion_tokens if usage else 0
         reported = getattr(usage, "cost", None) if usage else None
         cost = (
@@ -124,6 +133,7 @@ class OpenAIChatProvider:
             tool_calls=calls,
             tokens_in=tokens_in,
             tokens_out=tokens_out,
+            tokens_cached=tokens_cached,
             cost_usd=cost,
             stop_reason=choice.finish_reason,
             model=resp.model or req.model,
