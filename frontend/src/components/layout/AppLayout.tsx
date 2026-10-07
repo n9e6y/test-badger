@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { useLogout, useMe } from '@/api/hooks'
 import { Logo } from '@/components/common/Logo'
 import { ErrorState, FullPageSpinner } from '@/components/common/states'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,13 +35,11 @@ export function AppLayout() {
         <ErrorState message={me.error.message} onRetry={() => me.refetch()} />
       </div>
     )
+  // After logging out, go home (not to the login page the auth guard below would pick).
+  if (logout.isSuccess) return <Navigate to="/" replace />
   if (!me.data) return <Navigate to="/login" replace state={{ from: location.pathname }} />
 
-  const onLogout = () =>
-    logout.mutate(undefined, {
-      onSuccess: () => navigate('/'),
-      onError: (err) => toast.error(err.message),
-    })
+  const onLogout = () => logout.mutate(undefined, { onError: (err) => toast.error(err.message) })
 
   return (
     <div className="min-h-screen">
@@ -61,11 +60,15 @@ export function AppLayout() {
               Dashboard
             </NavLink>
           </nav>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
+            <span className="hidden text-sm text-muted-foreground md:inline">{me.data.email}</span>
+            <Button variant="outline" className="hidden sm:inline-flex" onClick={onLogout} disabled={logout.isPending}>
+              <LogOut aria-hidden /> Log out
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label={`Account: ${me.data.name}`}
-                className="grid size-10 place-items-center border font-heading text-sm font-semibold hover:bg-accent"
+                className="grid size-10 place-items-center border font-heading text-sm font-semibold hover:bg-accent sm:hidden"
               >
                 {initials(me.data.name)}
               </DropdownMenuTrigger>

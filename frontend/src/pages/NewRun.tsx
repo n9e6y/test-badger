@@ -1,9 +1,10 @@
-import { AlertCircle, ArrowLeft, ArrowRight, Check, Globe, Loader2, ShoppingCart, UserPlus } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight, Check, Globe, Layers, Loader2, ShoppingCart, UserPlus } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
-import { useProject, useStartRun } from '@/api/hooks'
-import type { TestType } from '@/api/types'
+import { toast } from 'sonner'
+
+import { type TestChoice, useProject, useStartTests } from '@/api/hooks'
 import { Corners } from '@/components/common/Corners'
 import { ErrorState, FullPageSpinner } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
@@ -11,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
-const TYPES: { key: TestType; title: string; text: string; icon: typeof UserPlus }[] = [
+const TYPES: { key: TestChoice; title: string; text: string; icon: typeof UserPlus }[] = [
   {
     key: 'registration',
     title: 'Registration',
@@ -23,6 +24,12 @@ const TYPES: { key: TestType; title: string; text: string; icon: typeof UserPlus
     title: 'Store & checkout',
     text: 'Cart, quantities, coupons, stock and checkout up to the payment step.',
     icon: ShoppingCart,
+  },
+  {
+    key: 'both',
+    title: 'Both',
+    text: 'Runs the Registration test and the Store test, one after the other. You approve each plan and get two reports.',
+    icon: Layers,
   },
 ]
 
@@ -64,9 +71,9 @@ function OptionCard({
 export function NewRun() {
   const { projectId = '' } = useParams()
   const project = useProject(projectId)
-  const start = useStartRun()
+  const start = useStartTests()
   const navigate = useNavigate()
-  const [type, setType] = useState<TestType>('registration')
+  const [type, setType] = useState<TestChoice>('registration')
   const [goal, setGoal] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -79,14 +86,20 @@ export function NewRun() {
     start.mutate(
       {
         projectId,
+        choice: type,
         input: {
-          test_type: type,
           goal_text: goal.trim() || undefined,
           test_email: email.trim() || undefined,
           test_password: password || undefined,
         },
       },
-      { onSuccess: (run) => navigate(`/app/runs/${run.id}`) },
+      {
+        onSuccess: ({ runs, notStarted }) => {
+          if (notStarted) toast.error(`The Store run was not started: ${notStarted}`)
+          else if (runs.length > 1) toast.success('Two runs started. The Store plan will be waiting for you too.')
+          navigate(`/app/runs/${runs[0].id}`)
+        },
+      },
     )
   }
 
@@ -107,7 +120,7 @@ export function NewRun() {
 
       <section className="flex flex-col gap-3">
         <h2 id="type-title" className="text-xl">1 · What should it test?</h2>
-        <div role="radiogroup" aria-labelledby="type-title" className="grid gap-4 sm:grid-cols-2">
+        <div role="radiogroup" aria-labelledby="type-title" className="grid gap-4 sm:grid-cols-3">
           {TYPES.map(({ key, title, text, icon: Icon }) => (
             <OptionCard key={key} checked={type === key} onSelect={() => setType(key)}>
               <Icon className="size-6 stroke-[1.5] text-steel-700" aria-hidden />
@@ -170,7 +183,7 @@ export function NewRun() {
         <Corners />
         <p className="flex-[1_1_320px] text-sm text-pretty">
           The agent first explores the site (about a minute) and proposes a plan. Nothing is tested until you approve
-          it. A full run takes about 3–5 minutes.
+          it. {type === 'both' ? 'Both runs together take about 8–10 minutes.' : 'A full run takes about 3–5 minutes.'}
         </p>
         <Button type="submit" size="lg" className="blueprint" disabled={start.isPending}>
           <Corners />

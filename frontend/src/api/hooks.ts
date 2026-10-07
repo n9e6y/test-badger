@@ -13,6 +13,7 @@ import type {
   SignupInput,
   StartRunInput,
   Step,
+  TestType,
   User,
 } from './types'
 
@@ -68,8 +69,13 @@ export function useProjects() {
   return useQuery({ queryKey: ['projects'], queryFn: () => api<Project[]>('/projects') })
 }
 
-export function useRecentRuns() {
-  return useQuery({ queryKey: ['runs', 'recent'], queryFn: () => api<RunSummary[]>('/runs') })
+/** `pollMs` keeps statuses fresh where they matter (e.g. waiting plans on the run page). */
+export function useRecentRuns(pollMs?: number) {
+  return useQuery({
+    queryKey: ['runs', 'recent'],
+    queryFn: () => api<RunSummary[]>('/runs'),
+    refetchInterval: pollMs ?? false,
+  })
 }
 
 export function useRun(runId: string, sseConnected = false) {
@@ -108,6 +114,39 @@ export function useStartRun() {
     onSuccess: (run) => {
       qc.setQueryData(['run', run.id], run)
       qc.invalidateQueries({ queryKey: ['runs'] })
+    },
+  })
+}
+
+/** What the user can pick on "New run": one test type, or both as two runs. */
+export type TestChoice = TestType | 'both'
+
+/**
+ * Starts the chosen test. "both" starts a Registration run and a Store run with the same
+ * details; each gets its own plan and report. Resolves to the started runs (first one first)
+ * and, if a later run could not start, the reason.
+ */
+export function useStartTests() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ projectId, choice, input }: { projectId: string; choice: TestChoice; input: Omit<StartRunInput, 'test_type'> }) => {
+      const types: TestType[] = choice === 'both' ? ['registration', 'store'] : [choice]
+      const runs: Run[] = []
+      for (const test_type of types) {
+        try {
+          runs.push(await post<Run>(`/projects/${projectId}/runs`, { ...input, test_type }))
+        } catch (err) {
+          // The first run failing is a normal error; a later one must not hide the runs already started.
+          if (runs.length === 0) throw err
+          return { runs, notStarted: err instanceof Error ? err.message : 'The second run could not be started.' }
+        }
+      }
+      return { runs, notStarted: null as string | null }
+    },
+    onSuccess: ({ runs }) => {
+      for (const run of runs) qc.setQueryData(['run', run.id], run)
+      qc.invalidateQueries({ queryKey: ['runs'] })
+      qc.invalidateQueries({ queryKey: ['project'] })
     },
   })
 }

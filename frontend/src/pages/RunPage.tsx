@@ -1,8 +1,8 @@
-import { ArrowLeft, Clock, DollarSign, RotateCcw, Square } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Clock, DollarSign, ListChecks, RotateCcw, Square } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
-import { TERMINAL, useCancelRun, useRun, useStartRun } from '@/api/hooks'
+import { TERMINAL, useCancelRun, useRecentRuns, useRun, useStartRun } from '@/api/hooks'
 import type { Run, RunStatus } from '@/api/types'
 import { ErrorState, FullPageSpinner } from '@/components/common/states'
 import { ReportView } from '@/components/report/ReportView'
@@ -28,6 +28,7 @@ export function RunPage() {
   return (
     <div className="flex flex-col gap-6">
       <RunHeader run={r} />
+      <OtherPlans currentId={r.id} />
       {planning ? (
         <Planning run={r} reconPages={live.reconPages} />
       ) : r.status === 'AWAITING_APPROVAL' ? (
@@ -42,6 +43,38 @@ export function RunPage() {
         <LiveRun run={r} live={live} />
       )}
     </div>
+  )
+}
+
+const NOT_STARTED: RunStatus[] = ['QUEUED', 'RECON', 'PLANNING', 'AWAITING_APPROVAL']
+
+/** Points to the user's other runs that still need a plan approval (e.g. the second run of "Both"). */
+function OtherPlans({ currentId }: { currentId: string }) {
+  const runs = useRecentRuns(10_000)
+  const others = (runs.data ?? []).filter((x) => x.id !== currentId && NOT_STARTED.includes(x.status))
+  if (others.length === 0) return null
+  return (
+    <ul className="flex flex-col gap-2 print:hidden">
+      {others.map((o) => (
+        <li key={o.id}>
+          <Link
+            to={`/app/runs/${o.id}`}
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 border border-steel-400 bg-steel-100 px-4 py-3 text-sm text-steel-800 hover:bg-steel-200"
+          >
+            <ListChecks className="size-4 shrink-0" aria-hidden />
+            <span className="min-w-0 flex-1">
+              {o.status === 'AWAITING_APPROVAL' ? 'Another test plan is waiting for your approval: ' : 'Another test is being planned: '}
+              <strong className="font-semibold">
+                {o.project_name} · {TEST_TYPE_LABEL[o.test_type] ?? o.test_type}
+              </strong>
+            </span>
+            <span className="inline-flex items-center gap-1 font-heading font-semibold">
+              Open <ArrowRight className="size-4" aria-hidden />
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   )
 }
 

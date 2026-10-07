@@ -1,9 +1,8 @@
-import { Globe, History, Loader2, Play, Plus, ShoppingCart, UserPlus } from 'lucide-react'
+import { Globe, History, Layers, Loader2, Play, Plus, ShoppingCart, UserPlus } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
-import { useMe, useProjects, useRecentRuns, useStartRun } from '@/api/hooks'
-import type { TestType } from '@/api/types'
+import { type TestChoice, useMe, useProjects, useRecentRuns, useStartTests } from '@/api/hooks'
 import { OverallBadge, StatusBadge } from '@/components/common/badges'
 import { Corners } from '@/components/common/Corners'
 import { RunsTable } from '@/components/common/RunsTable'
@@ -15,24 +14,28 @@ export function Dashboard() {
   const me = useMe()
   const projects = useProjects()
   const runs = useRecentRuns()
-  const startRun = useStartRun()
+  const startRun = useStartTests()
   const navigate = useNavigate()
   const demo = projects.data?.find((p) => p.is_demo)
   const sites = projects.data?.filter((p) => !p.is_demo) ?? []
   const firstName = me.data?.name.split(' ')[0]
   const lastDemo = demo ? runs.data?.find((r) => r.project_id === demo.id) : undefined
 
-  const startDemo = (testType: TestType) => {
+  const startDemo = (choice: TestChoice) => {
     if (!demo) return
     startRun.mutate(
-      { projectId: demo.id, input: { test_type: testType } },
+      { projectId: demo.id, choice, input: {} },
       {
-        onSuccess: (run) => navigate(`/app/runs/${run.id}`),
+        onSuccess: ({ runs, notStarted }) => {
+          if (notStarted) toast.error(`The Store run was not started: ${notStarted}`)
+          else if (runs.length > 1) toast.success('Two runs started. The Store plan will be waiting for you too.')
+          navigate(`/app/runs/${runs[0].id}`)
+        },
         onError: (err) => toast.error(err.message),
       },
     )
   }
-  const pending = (t: TestType) => startRun.isPending && startRun.variables?.input.test_type === t
+  const pending = (c: TestChoice) => startRun.isPending && startRun.variables?.choice === c
 
   return (
     <div className="flex flex-col gap-10">
@@ -72,6 +75,10 @@ export function Dashboard() {
             <Button variant="outline" onClick={() => startDemo('store')} disabled={!demo || startRun.isPending}>
               {pending('store') ? <Loader2 className="animate-spin" aria-hidden /> : <ShoppingCart aria-hidden />}
               Test store &amp; checkout
+            </Button>
+            <Button variant="outline" onClick={() => startDemo('both')} disabled={!demo || startRun.isPending}>
+              {pending('both') ? <Loader2 className="animate-spin" aria-hidden /> : <Layers aria-hidden />}
+              Test both
             </Button>
             {demo && (
               <Button variant="ghost" asChild>
