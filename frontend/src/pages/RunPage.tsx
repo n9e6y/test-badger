@@ -116,7 +116,17 @@ function RunHeader({ run }: { run: Run }) {
           <h1 className="mt-1 text-[clamp(26px,2.6vw,36px)]">
             {run.project_name} · {TEST_TYPE_LABEL[run.test_type] ?? run.test_type}
           </h1>
-          <p className="truncate text-sm text-muted-foreground">{run.site_url}</p>
+          <p className="truncate text-sm text-muted-foreground">
+            {run.site_url}
+            {run.parent_run_id && (
+              <>
+                {' · '}
+                <Link to={`/app/runs/${run.parent_run_id}`} className="text-steel-700 underline underline-offset-2">
+                  Re-run of an earlier run
+                </Link>
+              </>
+            )}
+          </p>
         </div>
         <div className="flex flex-wrap items-stretch gap-2.5">
           {run.started_at && (

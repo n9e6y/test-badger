@@ -160,6 +160,19 @@ function useRunAction(path: (id: string) => string, method: 'POST' | 'PATCH' = '
   })
 }
 
+/** D21: run the same plan again (no new planning) to check whether fixes worked. */
+export function useRerun() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (runId: string) => post<Run>(`/runs/${runId}/rerun`),
+    onSuccess: (run) => {
+      qc.setQueryData(['run', run.id], run)
+      qc.invalidateQueries({ queryKey: ['runs'] })
+      qc.invalidateQueries({ queryKey: ['project'] })
+    },
+  })
+}
+
 export const useApproveRun = () => useRunAction((id) => `/runs/${id}/approve`)
 export const useCancelRun = () => useRunAction((id) => `/runs/${id}/cancel`)
 export const usePatchPlan = () => useRunAction((id) => `/runs/${id}/plan`, 'PATCH')

@@ -3,6 +3,9 @@ goal text; it never invents data, so runs are reproducible."""
 
 from __future__ import annotations
 
+import json
+from typing import Any
+
 LIBRARY: dict[str, list[str]] = {
     "valid_name": ["Anna Becker"],
     "valid_email": ["shipcheck+{run}@example.com"],
@@ -31,3 +34,17 @@ def format_test_data(data: dict[str, list[str]]) -> str:
     return "\n".join(
         f"- {key}: " + ", ".join(f'"{v}"' for v in values) for key, values in data.items()
     )
+
+
+def refresh_plan_data(plan: dict[str, Any], old_run_id: str, new_run_id: str) -> dict[str, Any]:
+    """Copy of a stored plan for a re-run (D21), with per-run values swapped for the new run's.
+
+    Without this a re-run would sign up with the parent run's email again and the
+    "valid signup" scenario would hit "account already exists".
+    """
+    old, new = data_for_run(old_run_id, list(LIBRARY)), data_for_run(new_run_id, list(LIBRARY))
+    swaps = {a: b for key in LIBRARY for a, b in zip(old[key], new[key], strict=True) if a != b}
+    text = json.dumps(plan)
+    for a, b in swaps.items():
+        text = text.replace(a, b)
+    return dict(json.loads(text))

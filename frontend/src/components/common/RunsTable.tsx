@@ -32,6 +32,9 @@ export function RunsTable({ runs, showSite = true, label }: { runs: RunSummary[]
           <span role="cell" className="min-w-0 flex-[1_1_240px]">
             {showSite && <strong className="font-semibold">{r.project_name} · </strong>}
             {TEST_TYPE_LABEL[r.test_type] ?? r.test_type}
+            {r.parent_run_id && (
+              <span className="ml-2 border border-steel-400 px-1.5 text-[11px] text-steel-700">Re-run</span>
+            )}
           </span>
           <span role="cell" className="w-36">
             {r.overall_verdict ? <OverallBadge verdict={r.overall_verdict} /> : <StatusBadge status={r.status} />}

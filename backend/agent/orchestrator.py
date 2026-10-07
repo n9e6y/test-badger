@@ -95,6 +95,33 @@ class DbRunContext:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
 
+    @property
+    def video_dir(self) -> Path:
+        return self._dir / "video"
+
+    async def save_video(self, path: Path) -> str:
+        size = await asyncio.to_thread(lambda: path.stat().st_size)
+        async with SessionLocal() as s:
+            art = Artifact(
+                run_id=self.run_id, kind="video", path=str(path), mime="video/webm", size_bytes=size
+            )
+            s.add(art)
+            await s.commit()
+            return art.id
+
+    async def scenario_video(
+        self, scenario_id: str, artifact_id: str, start_s: float, end_s: float
+    ) -> None:
+        sid = await self._scenario_db_id(scenario_id)
+        if sid is None:
+            return
+        async with SessionLocal() as s:
+            row = await s.get(Scenario, sid)
+            if row is not None:
+                row.video_artifact_id = artifact_id
+                row.video_start_s, row.video_end_s = start_s, end_s
+                await s.commit()
+
     async def save_step(self, scenario_id: str, step: StepRecord) -> None:
         sid = await self._scenario_db_id(scenario_id)
         if sid is None:
@@ -305,6 +332,7 @@ async def execute_run(run_id: str) -> None:
             plan=plan,
             secrets=_secrets(run),
             load_screenshot=ctx.load_screenshot,
+            video_dir=ctx.video_dir,
         )
         report.site_url = public_site_url(project)
         async with SessionLocal() as s:

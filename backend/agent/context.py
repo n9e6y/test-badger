@@ -25,6 +25,16 @@ class RunContext(Protocol):
 
     async def save_step(self, scenario_id: str, step: StepRecord) -> None: ...
 
+    async def save_video(self, path: Path) -> str:
+        """Register a finished WebM recording (D22) and return its artifact id."""
+        ...
+
+    async def scenario_video(
+        self, scenario_id: str, artifact_id: str, start_s: float, end_s: float
+    ) -> None:
+        """Which part of which video shows this scenario."""
+        ...
+
     async def scenario_finished(self, result: ScenarioResult) -> None: ...
 
     async def is_cancelled(self) -> bool: ...
@@ -41,6 +51,8 @@ class MemoryContext:
     screenshots: dict[str, bytes] = field(default_factory=dict)
     steps: dict[str, list[StepRecord]] = field(default_factory=dict)
     results: list[ScenarioResult] = field(default_factory=list)
+    videos: dict[str, Path] = field(default_factory=dict)
+    scenario_videos: dict[str, tuple[str, float, float]] = field(default_factory=dict)
     cancel: bool = False
 
     async def emit(self, event: str, payload: dict[str, Any]) -> None:
@@ -58,6 +70,16 @@ class MemoryContext:
 
     async def save_step(self, scenario_id: str, step: StepRecord) -> None:
         self.steps.setdefault(scenario_id, []).append(step)
+
+    async def save_video(self, path: Path) -> str:
+        artifact_id = uuid.uuid4().hex
+        self.videos[artifact_id] = path
+        return artifact_id
+
+    async def scenario_video(
+        self, scenario_id: str, artifact_id: str, start_s: float, end_s: float
+    ) -> None:
+        self.scenario_videos[scenario_id] = (artifact_id, start_s, end_s)
 
     async def scenario_finished(self, result: ScenarioResult) -> None:
         self.results.append(result)

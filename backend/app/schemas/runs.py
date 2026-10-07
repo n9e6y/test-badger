@@ -27,6 +27,7 @@ class RunSummary(BaseModel):
     findings_count: int = 0
     cost_usd: float
     created_at: datetime
+    parent_run_id: str | None = None
 
 
 class ProjectOut(BaseModel):
@@ -66,6 +67,30 @@ class ScenarioOut(BaseModel):
     reason: str | None
     steps_taken: int
     duration_s: float
+    video_artifact_id: str | None = None
+    video_start_s: float | None = None
+    video_end_s: float | None = None
+
+
+CompareStatus = Literal["fixed", "still_broken", "new_bug", "passing", "unclear"]
+
+
+class CompareItem(BaseModel):
+    scenario_id: str
+    title: str
+    before: str | None
+    after: str | None
+    status: CompareStatus
+    bug_title: str | None = None
+
+
+class Comparison(BaseModel):
+    """A re-run's result next to the run it re-ran (D21)."""
+
+    parent_run_id: str
+    parent_created_at: datetime
+    items: list[CompareItem]
+    counts: dict[str, int]
 
 
 class RunOut(BaseModel):
@@ -87,6 +112,8 @@ class RunOut(BaseModel):
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+    parent_run_id: str | None = None
+    comparison: Comparison | None = None
 
 
 class ScenarioToggle(BaseModel):

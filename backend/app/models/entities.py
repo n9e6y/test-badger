@@ -1,4 +1,5 @@
-"""Database tables from 04 §3 (+ D16: runs.user_id, steps.locator_json).
+"""Database tables from 04 §3 (+ D16: runs.user_id, steps.locator_json; D21: runs.parent_run_id;
+D22: scenario video columns).
 
 IDs are UUID strings and list/dict columns use JSON so the same models run on
 Postgres in production and SQLite in tests.
@@ -64,6 +65,8 @@ class Run(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     project_id: Mapped[str] = mapped_column(ForeignKey("projects.id"), index=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    # D21: a re-run of an earlier run's plan points back to that run.
+    parent_run_id: Mapped[str | None] = mapped_column(ForeignKey("runs.id"), index=True)
     test_type: Mapped[str] = mapped_column(String(50))
     goal_text: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(30), default="QUEUED", index=True)
@@ -101,6 +104,10 @@ class Scenario(Base):
     reason: Mapped[str | None] = mapped_column(Text)
     steps_taken: Mapped[int] = mapped_column(Integer, default=0)
     duration_s: Mapped[float] = mapped_column(Float, default=0.0)
+    # D22: the part of a recorded video that shows this scenario.
+    video_artifact_id: Mapped[str | None] = mapped_column(ForeignKey("artifacts.id"))
+    video_start_s: Mapped[float | None] = mapped_column(Float)
+    video_end_s: Mapped[float | None] = mapped_column(Float)
 
     run: Mapped[Run] = relationship(back_populates="scenarios")
 

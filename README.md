@@ -16,6 +16,8 @@ Built for buildX, problem #4 "Web Workflow Tester".
 3. **Approve the plan.** The agent explores the site, proposes test scenarios, and waits for you. You can switch scenarios off. Nothing is tested before you approve.
 4. **Watch it test.** Each scenario runs in a real Chromium browser. You see the live screenshot, every action the agent takes and why, the elapsed time and the AI cost so far.
 5. **Read the report.** Every scenario gets one of four verdicts: **Passed**, **Bug found**, **Blocked** (e.g. CAPTCHA) or **Inconclusive**. Every bug comes with screenshots, console and network errors, and steps to reproduce. You can copy a finding as Markdown or print the report as a PDF.
+6. **Watch it happen.** Every scenario is recorded on video; "Watch video" on a bug plays exactly the part where it happened.
+7. **Check your fix.** After fixing, click **Re-run same plan**: the same scenarios run again without new planning, and the report shows per scenario what is **fixed**, **still broken** or **new**.
 
 ## Results on our benchmark
 
@@ -34,7 +36,7 @@ The agent prefers *Inconclusive* over a weak *Bug found*. Across all runs, every
 ## How to try it
 
 1. Open the live site and **sign up** (name, email, password).
-2. On the dashboard, start a test on the **Demo shop**, or click **Test your own site** and add a URL you are allowed to test.
+2. On the dashboard, start a test on the **Demo shop** (Registration, Store, or both), or click **Test your own site** and add a URL you are allowed to test.
 3. Approve the plan, watch the run, read the report. Past runs are listed under *Recent runs* and on each site's history page.
 
 Each account can start a limited number of runs per day. A test costs real AI credit.
@@ -110,7 +112,7 @@ LLM_VERIFIER=openai_compat:anthropic/claude-sonnet-5.5
 LLM_REPORTER=openai_compat:anthropic/claude-haiku-4.5
 ```
 
-Budgets (`RUN_COST_CAP_USD`, `MAX_CONCURRENT_RUNS`, `RUNS_PER_USER_PER_DAY`) are also set in `.env`.
+Budgets (`RUN_COST_CAP_USD`, `MAX_CONCURRENT_RUNS`, `RUNS_PER_USER_PER_DAY`) and video recording (`VIDEO_ENABLED`) are also set in `.env`.
 
 ### Development
 

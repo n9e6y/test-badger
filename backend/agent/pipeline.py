@@ -9,8 +9,9 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
-from agent.browser.session import BrowserSession
+from agent.browser.session import BrowserSession, RecordedVideo
 from agent.browser.tools import BrowserTools
 from agent.context import RunContext
 from agent.executor import execute_scenario
@@ -65,17 +66,19 @@ async def plan_phase(
 
 async def execute_phase(
     *, ctx: RunContext, llm: LLMClient, target: Target, test_type: str, plan: TestPlan,
-    secrets: dict[str, str], load_screenshot: LoadScreenshot,
+    secrets: dict[str, str], load_screenshot: LoadScreenshot, video_dir: Path | None = None,
 ) -> Report:  # fmt: skip
     settings = get_settings()
     template = get_template(test_type)
     started = time.monotonic()
+    spans: dict[str, tuple[float, float]] = {}  # scenario id -> monotonic start/end (D22)
     deadline = started + settings.run_wall_clock_s
     results: dict[str, ScenarioResult] = {}
     triaged: list[Triaged] = []
     limits: list[str] = []
 
-    async with BrowserSession(target.allowed_origins, target.exempt_origins) as session:
+    record = video_dir if settings.video_enabled else None
+    async with BrowserSession(target.allowed_origins, target.exempt_origins, record) as session:
         tools = BrowserTools(session, secrets=secrets)
         for scenario in [s for s in plan.scenarios if s.enabled]:
             t_scn = template.scenario(scenario.id)
@@ -95,12 +98,14 @@ async def execute_phase(
                 )
                 await ctx.scenario_finished(result)
             else:
+                scn_started = time.monotonic()
                 result = await execute_scenario(
                     scenario=scenario, base_url=target.base_url,
                     clean_state=bool(t_scn and t_scn.clean_state), session=session, tools=tools,
                     llm=llm, ctx=ctx, max_steps=settings.max_steps_per_scenario,
                     deadline=deadline,
                 )  # fmt: skip
+                spans[scenario.id] = (scn_started, time.monotonic())
             results[scenario.id] = result
             if result.finished in ("step_budget", "budget", "loop"):
                 limits.append(f"{result.notes or result.finished} on {scenario.id}")
@@ -133,8 +138,49 @@ async def execute_phase(
                 },
             )
 
+    # The session is closed here, so every video file is complete.
+    await _attach_videos(ctx, session.videos, spans)
+
     await ctx.emit("run.status", {"status": "REPORTING", "message": "Writing the report…"})
     return await build_report(
         run_id=ctx.run_id, site_url=target.base_url, test_type=test_type, triaged=triaged,
         duration_s=time.monotonic() - started, llm=llm, limits_hit=limits,
     )  # fmt: skip
+
+
+def video_slices(
+    videos: list[RecordedVideo], spans: dict[str, tuple[float, float]]
+) -> dict[str, tuple[int, float, float]]:
+    """For each scenario: (index into `videos`, start offset s, end offset s).
+
+    A scenario is matched to the video it overlaps most: a clean-state scenario opens a new
+    browser context (and video) right after it starts, so "contains the start" is not enough.
+    """
+    out: dict[str, tuple[int, float, float]] = {}
+    for sid, (start, end) in spans.items():
+        best, best_overlap = -1, 0.0
+        for i, v in enumerate(videos):
+            overlap = min(end, v.ended) - max(start, v.started)
+            if overlap > best_overlap:
+                best, best_overlap = i, overlap
+        if best >= 0:
+            v = videos[best]
+            out[sid] = (
+                best,
+                round(max(start, v.started) - v.started, 1),
+                round(min(end, v.ended) - v.started, 1),
+            )
+    return out
+
+
+async def _attach_videos(
+    ctx: RunContext, videos: list[RecordedVideo], spans: dict[str, tuple[float, float]]
+) -> None:
+    artifact_ids: dict[int, str] = {}
+    for sid, (index, start_s, end_s) in video_slices(videos, spans).items():
+        try:
+            if index not in artifact_ids:
+                artifact_ids[index] = await ctx.save_video(videos[index].path)
+            await ctx.scenario_video(sid, artifact_ids[index], start_s, end_s)
+        except Exception:  # a missing video must never fail the run
+            logger.warning("could not attach video for %s", sid, exc_info=True)

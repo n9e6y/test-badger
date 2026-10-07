@@ -5,7 +5,9 @@ Only the worker creates sessions (invariant 7: the API never launches a browser)
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import TracebackType
@@ -56,8 +58,22 @@ class Signals:
         }
 
 
+@dataclass
+class RecordedVideo:
+    """One WebM per browser context (D22). Times are time.monotonic() values."""
+
+    path: Path
+    started: float
+    ended: float
+
+
 class BrowserSession:
-    def __init__(self, allowed_origins: list[str], exempt_origins: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        allowed_origins: list[str],
+        exempt_origins: list[str] | None = None,
+        video_dir: Path | None = None,
+    ) -> None:
         self.allowed_origins = allowed_origins
         self.network = NetworkGuard(exempt_origins or [])
         self.settings = get_settings()
@@ -69,6 +85,9 @@ class BrowserSession:
         self.last_status: int | None = None
         self.last_snapshot: PageSnapshot | None = None
         self._user_agent: str | None = None
+        self.video_dir = video_dir  # None = no recording (recon, tests)
+        self.videos: list[RecordedVideo] = []
+        self._video_started = 0.0
 
     # ---------- lifecycle ----------
 
@@ -87,12 +106,12 @@ class BrowserSession:
         await self.close()
 
     async def close(self) -> None:
-        for closer in (self._context, self._browser):
-            if closer is not None:
-                try:
-                    await closer.close()
-                except Error:
-                    logger.warning("browser close failed", exc_info=True)
+        await self._close_context()
+        if self._browser is not None:
+            try:
+                await self._browser.close()
+            except Error:
+                logger.warning("browser close failed", exc_info=True)
         if self._pw is not None:
             await self._pw.stop()
         self._context = self._browser = self._pw = self._page = None
@@ -100,24 +119,56 @@ class BrowserSession:
     async def reset_context(self) -> None:
         """Fresh cookies/storage (scenarios that need a clean state)."""
         assert self._browser is not None
-        if self._context is not None:
-            await self._context.close()
+        await self._close_context()
         ua = await self._default_user_agent()
+        video: dict[str, Any] = {}
+        if self.video_dir is not None:
+            await asyncio.to_thread(self.video_dir.mkdir, parents=True, exist_ok=True)
+            video = {
+                "record_video_dir": str(self.video_dir),
+                "record_video_size": {
+                    "width": self.settings.video_width,
+                    "height": self.settings.video_height,
+                },
+            }
         self._context = await self._browser.new_context(
             viewport=VIEWPORT,
             user_agent=f"{ua} {self.settings.tester_user_agent_suffix}",
             locale="en-US",
             service_workers="block",  # SW requests would bypass routing
+            **video,
         )
         self._context.set_default_timeout(self.settings.browser_action_timeout_ms)
         self._context.set_default_navigation_timeout(self.settings.browser_nav_timeout_ms)
         await self._context.route("**/*", self._guard_route)
         self._page = await self._context.new_page()
+        self._video_started = time.monotonic()
         self._attach_listeners(self._page)
         self._context.on("page", self._on_popup)
         self._signals = Signals()
         self.last_status = None
         self.last_snapshot = None
+
+    async def _close_context(self) -> None:
+        """Close the current context; its video file is complete only after this."""
+        if self._context is None:
+            return
+        video_path: str | None = None
+        if self.video_dir is not None and self._page is not None and self._page.video:
+            try:
+                video_path = await self._page.video.path()
+            except Error:
+                logger.warning("video path unavailable", exc_info=True)
+        try:
+            await self._context.close()
+        except Error:
+            logger.warning("context close failed", exc_info=True)
+        if video_path and await asyncio.to_thread(Path(video_path).is_file):
+            self.videos.append(
+                RecordedVideo(Path(video_path), self._video_started, time.monotonic())
+            )
+        self._context = None
+        self._page = None
 
     async def _default_user_agent(self) -> str:
         if self._user_agent is None:

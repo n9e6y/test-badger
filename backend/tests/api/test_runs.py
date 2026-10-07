@@ -219,3 +219,76 @@ async def test_activity_feed_lists_recent_steps(client: AsyncClient) -> None:
     feed = (await client.get(f"/api/runs/{run['id']}/activity")).json()
     assert [f["description"] for f in feed] == ["Open /signup", 'Click "Create account"']
     assert feed[0]["scenario_code"] == "R1"
+
+
+async def _finish(run_id: str, report: dict[str, Any], plan: dict[str, Any] | None = None) -> None:
+    from app.db import get_session
+    from app.models import Run
+
+    override = app.dependency_overrides[get_session]
+    async for session in override():
+        run = await session.get(Run, run_id)
+        assert run is not None
+        run.status, run.report_json = "COMPLETED", report
+        if plan is not None:
+            run.plan_json = plan
+        await session.commit()
+
+
+def _report(verdicts: dict[str, str], findings: list[dict[str, str]]) -> dict[str, Any]:
+    return {
+        "scenarios": [{"id": k, "title": k, "verdict": v} for k, v in verdicts.items()],
+        "findings": findings,
+    }
+
+
+async def test_rerun_needs_a_finished_run_with_a_plan(client: AsyncClient) -> None:
+    await signup(client)
+    run = await start(client)
+    r = await client.post(f"/api/runs/{run['id']}/rerun")
+    assert r.status_code == 409
+    await _finish(run["id"], _report({}, []))  # blocked run: report but no plan
+    assert (await client.post(f"/api/runs/{run['id']}/rerun")).status_code == 409
+
+
+async def test_rerun_reuses_plan_skips_planning_and_compares(client: AsyncClient) -> None:
+    from agent.templates.test_data import data_for_run
+
+    await signup(client)
+    parent = await start(client, goal_text="note")
+    old_email = data_for_run(parent["id"], ["valid_email"])["valid_email"][0]
+    plan = {**PLAN, "scenarios": [dict(s) for s in PLAN["scenarios"]]}  # type: ignore[union-attr]
+    plan["scenarios"][0]["test_data"] = [{"key": "valid_email", "value": old_email}]
+    plan["scenarios"][1]["enabled"] = False
+    await _finish(
+        parent["id"],
+        _report({"R1": "BUG_FOUND"}, [{"scenario_id": "R1", "title": "Signup broken"}]),
+        plan,
+    )
+
+    r = await client.post(f"/api/runs/{parent['id']}/rerun")
+    assert r.status_code == 201, r.text
+    child = r.json()
+    assert child["parent_run_id"] == parent["id"] and child["goal_text"] == "note"
+    assert app.state.queue.jobs[-1] == ("execute_run", child["id"])  # no plan_run
+    assert [(s["code"], s["enabled"]) for s in child["scenarios"]] == [("R1", True), ("R3", False)]
+    child_email = child["plan"]["scenarios"][0]["test_data"][0]["value"]
+    assert child_email != old_email and child["id"].replace("-", "")[:8] in child_email
+    assert child["comparison"] is None  # not finished yet
+
+    await _finish(child["id"], _report({"R1": "PASSED"}, []))
+    done = (await client.get(f"/api/runs/{child['id']}")).json()
+    assert done["comparison"]["parent_run_id"] == parent["id"]
+    assert done["comparison"]["counts"] == {"fixed": 1}
+    assert done["comparison"]["items"][0]["bug_title"] == "Signup broken"
+    recent = (await client.get("/api/runs")).json()
+    assert recent[0]["parent_run_id"] == parent["id"]
+
+
+async def test_rerun_of_someone_elses_run_is_not_found(client: AsyncClient) -> None:
+    await signup(client, "owner@example.com")
+    run = await start(client)
+    await _finish(run["id"], _report({}, []), PLAN)
+    client.cookies.clear()
+    await signup(client, "other@example.com")
+    assert (await client.post(f"/api/runs/{run['id']}/rerun")).status_code == 404

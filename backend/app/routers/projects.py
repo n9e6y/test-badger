@@ -59,6 +59,7 @@ async def run_summaries(session: AsyncSession, runs: list[Run]) -> list[RunSumma
             findings_count=counts.get(r.id, 0),
             cost_usd=round(r.cost_usd, 4),
             created_at=r.created_at,
+            parent_run_id=r.parent_run_id,
         )  # fmt: skip
         for r in runs
     ]

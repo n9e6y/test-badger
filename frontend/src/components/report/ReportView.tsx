@@ -1,23 +1,34 @@
-import { CheckCircle2, Printer, RotateCcw } from 'lucide-react'
+import { CheckCircle2, Film, Loader2, Printer, RefreshCcw, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
-import { useStartRun } from '@/api/hooks'
-import type { Report, Run } from '@/api/types'
+import { useRerun, useStartRun } from '@/api/hooks'
+import type { Report, Run, ScenarioRow } from '@/api/types'
 import { TONE_ICON, ToneBadge, VerdictBadge } from '@/components/common/badges'
 import { Corners } from '@/components/common/Corners'
+import { VideoDialog } from '@/components/common/VideoDialog'
 import { Button } from '@/components/ui/button'
 import { formatCost, formatDate, formatDuration, TEST_TYPE_LABEL } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { OVERALL_VERDICT, TONE_CLASSES, type VerdictTone } from '@/lib/verdict'
+import { hasVideo } from '@/lib/video'
 
+import { ComparisonCard } from './ComparisonCard'
 import { FindingCard } from './FindingCard'
 
 const ROW_RULE = 'border-b border-[color-mix(in_srgb,var(--foreground)_9%,transparent)]'
 
 export function ReportView({ run, report }: { run: Run; report: Report }) {
   const start = useStartRun()
+  const rerun = useRerun()
   const navigate = useNavigate()
+  const [video, setVideo] = useState<ScenarioRow | null>(null)
+  const rowFor = (code: string) => run.scenarios.find((s) => s.code === code)
+  const watch = (code: string) => {
+    const row = rowFor(code)
+    return hasVideo(row) ? () => setVideo(row) : undefined
+  }
   const overall = OVERALL_VERDICT[report.overall_verdict]
   const tone = TONE_CLASSES[overall.tone]
   const BigIcon = TONE_ICON[overall.tone]
@@ -28,6 +39,11 @@ export function ReportView({ run, report }: { run: Run; report: Report }) {
       { projectId: run.project_id, input: { test_type: run.test_type, goal_text: run.goal_text ?? undefined } },
       { onSuccess: (n) => navigate(`/app/runs/${n.id}`), onError: (e) => toast.error(e.message) },
     )
+  const rerunSame = () =>
+    rerun.mutate(run.id, {
+      onSuccess: (n) => navigate(`/app/runs/${n.id}`),
+      onError: (e) => toast.error(e.message),
+    })
 
   const counts: [VerdictTone, number, string][] = [
     ['bug', report.counts.bug_found ?? 0, 'Bug found'],
@@ -68,6 +84,8 @@ export function ReportView({ run, report }: { run: Run; report: Report }) {
         </div>
       </section>
 
+      {run.comparison && <ComparisonCard comparison={run.comparison} />}
+
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-2.5 print:hidden">
         <nav aria-label="Report sections" className="flex flex-wrap gap-x-5 gap-y-1 text-[15px] text-steel-700">
           <a href="#findings" className="hover:underline">Findings ({report.findings.length})</a>
@@ -79,8 +97,20 @@ export function ReportView({ run, report }: { run: Run; report: Report }) {
           <a href="#details" className="hover:underline">Run details</a>
         </nav>
         <div className="flex flex-wrap gap-2.5">
+          {run.plan && (
+            <Button
+              className="blueprint"
+              onClick={rerunSame}
+              disabled={rerun.isPending}
+              title="Runs the same scenarios again, without new planning, to check your fixes"
+            >
+              <Corners />
+              {rerun.isPending ? <Loader2 className="animate-spin" aria-hidden /> : <RefreshCcw aria-hidden />}
+              Re-run same plan
+            </Button>
+          )}
           <Button variant="outline" onClick={runAgain} disabled={start.isPending}>
-            <RotateCcw aria-hidden /> Run again
+            <RotateCcw aria-hidden /> Fresh run
           </Button>
           <Button variant="outline" onClick={() => window.print()}>
             <Printer aria-hidden /> Print / PDF
@@ -98,7 +128,9 @@ export function ReportView({ run, report }: { run: Run; report: Report }) {
                 <span>No confirmed bugs in the scenarios that could be completed.</span>
               </div>
             ) : (
-              report.findings.map((f) => <FindingCard key={f.id} finding={f} siteUrl={report.site_url} />)
+              report.findings.map((f) => (
+                <FindingCard key={f.id} finding={f} siteUrl={report.site_url} onWatch={watch(f.scenario_id)} />
+              ))
             )}
           </section>
 
@@ -107,7 +139,7 @@ export function ReportView({ run, report }: { run: Run; report: Report }) {
               <h2 className="text-[26px]">Needs review</h2>
               <p className="text-muted-foreground">The agent wasn’t fully sure about these. Take a look before fixing.</p>
               {report.needs_review.map((f) => (
-                <FindingCard key={f.id} finding={f} siteUrl={report.site_url} review />
+                <FindingCard key={f.id} finding={f} siteUrl={report.site_url} review onWatch={watch(f.scenario_id)} />
               ))}
             </section>
           )}
@@ -158,6 +190,13 @@ export function ReportView({ run, report }: { run: Run; report: Report }) {
                   <span role="cell" className="w-24 text-right text-xs text-muted-foreground tabular-nums">
                     {s.steps_taken} steps · {formatDuration(s.duration_s)}
                   </span>
+                  <span role="cell" className="w-20 text-right print:hidden">
+                    {watch(s.id) && (
+                      <Button variant="ghost" size="sm" onClick={watch(s.id)} aria-label={`Watch video of ${s.id}`}>
+                        <Film aria-hidden /> Watch
+                      </Button>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
@@ -182,6 +221,8 @@ export function ReportView({ run, report }: { run: Run; report: Report }) {
           )}
         </aside>
       </div>
+
+      {video && <VideoDialog scenario={video} onClose={() => setVideo(null)} />}
     </div>
   )
 }

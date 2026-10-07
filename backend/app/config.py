@@ -35,6 +35,10 @@ class Settings(BaseSettings):
 
     # Browser
     browser_headless: bool = True
+    # D22: record one WebM per browser context during execution (scaled down to save CPU).
+    video_enabled: bool = True
+    video_width: int = 960
+    video_height: int = 600
     browser_nav_timeout_ms: int = 30_000
     browser_action_timeout_ms: int = 5_000
     tester_user_agent_suffix: str = "test-badger/0.1 (pre-release QA agent)"

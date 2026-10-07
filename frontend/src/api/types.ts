@@ -42,6 +42,7 @@ export interface RunSummary {
   findings_count: number
   cost_usd: number
   created_at: string
+  parent_run_id: string | null
 }
 
 export interface Project {
@@ -94,6 +95,29 @@ export interface ScenarioRow {
   reason: string | null
   steps_taken: number
   duration_s: number
+  /** D22: the part of a recorded video that shows this scenario. */
+  video_artifact_id: string | null
+  video_start_s: number | null
+  video_end_s: number | null
+}
+
+/** D21: how a scenario changed between a run and its re-run. */
+export type CompareStatus = 'fixed' | 'still_broken' | 'new_bug' | 'passing' | 'unclear'
+
+export interface CompareItem {
+  scenario_id: string
+  title: string
+  before: Verdict | null
+  after: Verdict | null
+  status: CompareStatus
+  bug_title: string | null
+}
+
+export interface Comparison {
+  parent_run_id: string
+  parent_created_at: string
+  items: CompareItem[]
+  counts: Partial<Record<CompareStatus, number>>
 }
 
 export interface ReproStep {
@@ -172,6 +196,8 @@ export interface Run {
   created_at: string
   started_at: string | null
   finished_at: string | null
+  parent_run_id: string | null
+  comparison: Comparison | null
 }
 
 export interface StartRunInput {

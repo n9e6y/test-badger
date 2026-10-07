@@ -152,3 +152,16 @@ def test_describe_action() -> None:
         'Type "SUMMER24" in "Coupon code"'
     )
     assert describe_action("navigate", {"url": "https://s.example/cart"}, None, "") == "Open /cart"
+
+
+async def test_session_records_one_video_per_context(site: str, tmp_path: Path) -> None:
+    """D22: each browser context (the first one and every clean-state reset) gives one WebM."""
+    async with BrowserSession([site], [site], video_dir=tmp_path) as s:
+        await s.page.goto(f"{site}/form.html")
+        await s.reset_context()
+        await s.page.goto(f"{site}/form.html")
+    assert len(s.videos) == 2
+    for v in s.videos:
+        assert v.path.is_file() and v.path.suffix == ".webm" and v.path.stat().st_size > 0
+        assert v.ended >= v.started
+    assert s.videos[0].ended <= s.videos[1].started

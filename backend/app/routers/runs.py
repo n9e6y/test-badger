@@ -11,14 +11,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.browser.tools import describe_action
 from agent.orchestrator import public_site_url, to_public_url
+from agent.templates.test_data import refresh_plan_data
 from app.config import get_settings
 from app.db import get_session
 from app.events import open_subscription, sse_stream
 from app.models import Project, Run, Scenario, Step, User
+from app.models.entities import new_id
 from app.queue import JobQueue, get_queue
 from app.routers.projects import run_summaries, visible_project
 from app.schemas.runs import (
     ActivityOut,
+    Comparison,
     PlanPatch,
     RunIn,
     RunOut,
@@ -27,6 +30,7 @@ from app.schemas.runs import (
     StepOut,
 )
 from app.security import CurrentUser, encrypt_secret
+from app.services.compare import compare_reports
 from app.services.runs import ACTIVE, STATUS_MESSAGES, TERMINAL, set_status
 
 router = APIRouter(tags=["runs"])
@@ -56,17 +60,28 @@ async def run_out(session: AsyncSession, run: Run) -> RunOut:
         plan=run.plan_json, scenarios=[ScenarioOut.model_validate(s) for s in scenarios],
         report=run.report_json, cost_usd=round(run.cost_usd, 4), tokens_in=run.tokens_in,
         tokens_out=run.tokens_out, created_at=run.created_at, started_at=run.started_at,
-        finished_at=run.finished_at,
+        finished_at=run.finished_at, parent_run_id=run.parent_run_id,
+        comparison=await comparison_for(session, run),
     )  # fmt: skip
 
 
-@router.post(
-    "/projects/{project_id}/runs", response_model=RunOut, status_code=status.HTTP_201_CREATED
-)
-async def start_run(
-    project_id: str, body: RunIn, user: CurrentUser, session: Session, queue: Queue
-) -> RunOut:
-    project = await visible_project(session, project_id, user.id)
+async def comparison_for(session: AsyncSession, run: Run) -> Comparison | None:
+    """D21: a finished re-run is shown next to the run it re-ran."""
+    if not (run.parent_run_id and run.report_json):
+        return None
+    parent = await session.get(Run, run.parent_run_id)
+    if parent is None or parent.user_id != run.user_id or not parent.report_json:
+        return None
+    items = compare_reports(parent.report_json, run.report_json)
+    counts: dict[str, int] = {}
+    for item in items:
+        counts[item.status] = counts.get(item.status, 0) + 1
+    return Comparison(
+        parent_run_id=parent.id, parent_created_at=parent.created_at, items=items, counts=counts
+    )
+
+
+async def check_daily_limit(session: AsyncSession, user: User) -> None:
     settings = get_settings()
     since = datetime.now(UTC) - timedelta(days=1)
     today = await session.scalar(
@@ -78,6 +93,16 @@ async def start_run(
             f"You've reached today's limit of {settings.runs_per_user_per_day} test runs. "
             f"Please try again tomorrow.",
         )
+
+
+@router.post(
+    "/projects/{project_id}/runs", response_model=RunOut, status_code=status.HTTP_201_CREATED
+)
+async def start_run(
+    project_id: str, body: RunIn, user: CurrentUser, session: Session, queue: Queue
+) -> RunOut:
+    project = await visible_project(session, project_id, user.id)
+    await check_daily_limit(session, user)
     creds = None
     if body.test_email or body.test_password:
         creds = encrypt_secret(
@@ -93,6 +118,42 @@ async def start_run(
     session.add(run)
     await session.commit()
     await queue.enqueue("plan_run", run.id)
+    return await run_out(session, run)
+
+
+@router.post("/runs/{run_id}/rerun", response_model=RunOut, status_code=status.HTTP_201_CREATED)
+async def rerun(run_id: str, user: CurrentUser, session: Session, queue: Queue) -> RunOut:
+    """D21: run the same approved plan again (no recon, no planning) to check fixes."""
+    parent = await owned_run(session, run_id, user)
+    if parent.status != "COMPLETED" or not parent.plan_json:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Only a finished run with a test plan can be re-run. Start a new run instead.",
+        )
+    await check_daily_limit(session, user)
+    child_id = new_id()
+    plan = refresh_plan_data(parent.plan_json, parent.id, child_id)
+    run = Run(
+        id=child_id, project_id=parent.project_id, user_id=user.id,
+        parent_run_id=parent.id, test_type=parent.test_type, goal_text=parent.goal_text,
+        credentials_enc=parent.credentials_enc, recon_json=parent.recon_json, plan_json=plan,
+        approved_at=datetime.now(UTC),
+    )  # fmt: skip
+    session.add(run)
+    for order, sc in enumerate(plan["scenarios"]):
+        session.add(
+            Scenario(
+                run_id=child_id,
+                code=sc["id"],
+                title=sc["title"],
+                kind=sc["kind"],
+                order=order,
+                expected_result=sc["expected_result"],
+                enabled=sc.get("enabled", True),
+            )  # fmt: skip
+        )
+    await session.commit()
+    await queue.enqueue("execute_run", run.id)
     return await run_out(session, run)
 
 

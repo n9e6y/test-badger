@@ -1,4 +1,4 @@
-import { Activity, CheckCircle2, Copy, Terminal } from 'lucide-react'
+import { Activity, CheckCircle2, Copy, Film, Terminal } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -59,7 +59,18 @@ function LogPanel({ icon: Icon, title, lines, empty }: { icon: typeof Terminal; 
   )
 }
 
-export function FindingCard({ finding: f, siteUrl, review = false }: { finding: Finding; siteUrl: string; review?: boolean }) {
+export function FindingCard({
+  finding: f,
+  siteUrl,
+  review = false,
+  onWatch,
+}: {
+  finding: Finding
+  siteUrl: string
+  review?: boolean
+  /** Opens the scenario's video (D22), when one was recorded. */
+  onWatch?: () => void
+}) {
   const [lightbox, setLightbox] = useState<number | null>(null)
   const images = f.evidence.screenshot_ids.map((id, i) => ({
     src: `/api/artifacts/${id}`,
@@ -141,9 +152,16 @@ export function FindingCard({ finding: f, siteUrl, review = false }: { finding: 
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2.5 print:hidden">
-        <Button variant="outline" onClick={copy}>
-          <Copy aria-hidden /> Copy as text
-        </Button>
+        <div className="flex flex-wrap gap-2.5">
+          {onWatch && (
+            <Button variant="outline" onClick={onWatch}>
+              <Film aria-hidden /> Watch video
+            </Button>
+          )}
+          <Button variant="outline" onClick={copy}>
+            <Copy aria-hidden /> Copy as text
+          </Button>
+        </div>
         <span className="text-xs text-muted-foreground">Confidence: {f.confidence}</span>
       </div>
 
