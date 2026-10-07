@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     browser_headless: bool = True
     browser_nav_timeout_ms: int = 30_000
     browser_action_timeout_ms: int = 5_000
-    tester_user_agent_suffix: str = "ShipCheck/0.1 (pre-release QA agent)"
+    tester_user_agent_suffix: str = "test-badger/0.1 (pre-release QA agent)"
 
     # Budgets (03 §9)
     max_recon_pages: int = 6

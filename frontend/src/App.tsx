@@ -13,7 +13,8 @@ import { RunPage } from '@/pages/RunPage'
 function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-      <h1 className="text-2xl font-semibold">Page not found</h1>
+      <h1 className="text-4xl">Page not found</h1>
+      <p className="text-muted-foreground">The badger dug here and found nothing.</p>
       <Button asChild>
         <Link to="/">Go home</Link>
       </Button>

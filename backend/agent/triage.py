@@ -37,7 +37,7 @@ UNBLOCK_ADVICE = [
     (re.compile(r"captcha|robot", re.I),
      "Disable CAPTCHA on your staging site, or allowlist our tester's IP address."),
     (re.compile(r"403|access denied|bot|challenge|forbidden|429|rate", re.I),
-     "Add a firewall rule allowing our tester's user agent (ShipCheck) or IP on staging."),
+     "Add a firewall rule allowing our tester's user agent (test-badger) or IP on staging."),
     (re.compile(r"log ?in|sign ?in|credential|account required", re.I),
      "Add a test account in the run settings."),
     (re.compile(r"verif|email code|sms|otp", re.I),

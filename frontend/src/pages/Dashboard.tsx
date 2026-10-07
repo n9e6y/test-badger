@@ -1,13 +1,15 @@
-import { FlaskConical, Loader2, Plus, ShoppingCart, UserPlus } from 'lucide-react'
+import { Globe, History, Loader2, Play, Plus, ShoppingCart, UserPlus } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { useMe, useProjects, useRecentRuns, useStartRun } from '@/api/hooks'
 import type { TestType } from '@/api/types'
 import { OverallBadge, StatusBadge } from '@/components/common/badges'
+import { Corners } from '@/components/common/Corners'
+import { RunsTable } from '@/components/common/RunsTable'
 import { EmptyState, ErrorState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
-import { formatDate, TEST_TYPE_LABEL } from '@/lib/format'
+import { formatCost, formatDate, TEST_TYPE_LABEL } from '@/lib/format'
 
 export function Dashboard() {
   const me = useMe()
@@ -18,6 +20,7 @@ export function Dashboard() {
   const demo = projects.data?.find((p) => p.is_demo)
   const sites = projects.data?.filter((p) => !p.is_demo) ?? []
   const firstName = me.data?.name.split(' ')[0]
+  const lastDemo = demo ? runs.data?.find((r) => r.project_id === demo.id) : undefined
 
   const startDemo = (testType: TestType) => {
     if (!demo) return
@@ -32,117 +35,149 @@ export function Dashboard() {
   const pending = (t: TestType) => startRun.isPending && startRun.variables?.input.test_type === t
 
   return (
-    <div className="grid gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Hi {firstName}</h1>
-        <p className="text-muted-foreground">Check your site's key flows before you release.</p>
+    <div className="flex flex-col gap-10">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[clamp(30px,3vw,40px)]">Dashboard</h1>
+          <p className="mt-1 text-muted-foreground">
+            Hi {firstName}. Check your site’s key flows before you release.
+          </p>
+        </div>
+        <Button asChild size="lg" className="blueprint">
+          <Link to="/app/projects/new">
+            <Corners />
+            <Plus aria-hidden />
+            Test your own site
+          </Link>
+        </Button>
       </div>
 
-      <section className="rounded-xl border-2 border-primary/20 bg-background p-6">
-        <div className="flex items-start gap-3">
-          <FlaskConical className="mt-0.5 size-5" aria-hidden />
-          <div className="flex-1">
-            <h2 className="font-medium">Try it on our demo shop</h2>
-            <p className="text-sm text-muted-foreground">
-              A real store with hidden bugs. See what the agent finds in about 5 minutes.
-              {demo && (
-                <>
-                  {' '}
-                  <a href={demo.base_url} target="_blank" rel="noreferrer" className="underline underline-offset-4">
-                    Visit the shop
-                  </a>{' '}
-                  ·{' '}
-                  <Link to={`/app/projects/${demo.id}`} className="underline underline-offset-4">
-                    Run history
-                  </Link>
-                </>
-              )}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Button onClick={() => startDemo('registration')} disabled={!demo || startRun.isPending}>
-                {pending('registration') ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                ) : (
-                  <UserPlus className="size-4" aria-hidden />
-                )}
-                Test registration
+      {/* Demo shop */}
+      <section aria-labelledby="demo-title" className="blueprint flex flex-wrap items-center gap-x-8 gap-y-5 p-[22px]">
+        <Corners />
+        <div className="flex min-w-0 flex-[2_1_340px] flex-col gap-2">
+          <p className="kicker flex items-center gap-2">
+            <ShoppingCart className="size-4 stroke-[1.5]" aria-hidden /> Practice site
+          </p>
+          <h2 id="demo-title" className="text-[26px]">Demo shop</h2>
+          <p className="max-w-[40em] text-pretty">
+            A small store with 9 planted bugs in signup, cart and checkout. Run a test here to see the full flow (plan,
+            live run, report) in about 5 minutes before you test your own site.
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-2.5">
+            <Button variant="outline" onClick={() => startDemo('registration')} disabled={!demo || startRun.isPending}>
+              {pending('registration') ? <Loader2 className="animate-spin" aria-hidden /> : <UserPlus aria-hidden />}
+              Test registration
+            </Button>
+            <Button variant="outline" onClick={() => startDemo('store')} disabled={!demo || startRun.isPending}>
+              {pending('store') ? <Loader2 className="animate-spin" aria-hidden /> : <ShoppingCart aria-hidden />}
+              Test store &amp; checkout
+            </Button>
+            {demo && (
+              <Button variant="ghost" asChild>
+                <a href={demo.base_url} target="_blank" rel="noreferrer">
+                  Visit the shop
+                </a>
               </Button>
-              <Button variant="outline" onClick={() => startDemo('store')} disabled={!demo || startRun.isPending}>
-                {pending('store') ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                ) : (
-                  <ShoppingCart className="size-4" aria-hidden />
-                )}
-                Test store &amp; checkout
-              </Button>
-            </div>
+            )}
           </div>
         </div>
+        {lastDemo && (
+          <Link
+            to={`/app/runs/${lastDemo.id}`}
+            className="flex flex-[1_1_220px] flex-col gap-1.5 border px-4 py-3.5 hover:bg-accent"
+          >
+            <span className="text-xs text-muted-foreground">Your last demo run · {formatDate(lastDemo.created_at)}</span>
+            {lastDemo.overall_verdict ? (
+              <OverallBadge verdict={lastDemo.overall_verdict} />
+            ) : (
+              <StatusBadge status={lastDemo.status} />
+            )}
+            <span className="text-sm">
+              {TEST_TYPE_LABEL[lastDemo.test_type]} · {lastDemo.findings_count} {lastDemo.findings_count === 1 ? 'bug' : 'bugs'} · {formatCost(lastDemo.cost_usd)}
+            </span>
+          </Link>
+        )}
       </section>
 
-      <section className="grid gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-medium">My sites</h2>
-          <Button variant="outline" size="sm" asChild>
+      {/* My sites */}
+      <section aria-labelledby="sites-title" className="flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="sites-title" className="text-[26px]">My sites</h2>
+          <Button variant="ghost" asChild>
             <Link to="/app/projects/new">
-              <Plus className="size-4" aria-hidden />
-              Add a site
+              <Plus aria-hidden /> Add site
             </Link>
           </Button>
         </div>
         {projects.isError ? (
           <ErrorState message={projects.error.message} onRetry={() => projects.refetch()} />
+        ) : projects.isPending ? (
+          <div className="h-32 animate-pulse bg-muted" />
         ) : sites.length === 0 ? (
-          <EmptyState title="No sites yet">Start with the demo shop above, or add your own site.</EmptyState>
-        ) : (
-          <ul className="divide-y rounded-lg border bg-background">
-            {sites.map((p) => (
-              <li key={p.id}>
-                <Link to={`/app/projects/${p.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-muted/40">
-                  <div className="min-w-0">
-                    <p className="font-medium">{p.name}</p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {p.base_url}
-                      {p.last_run && ` · last run ${formatDate(p.last_run.created_at)}`}
-                    </p>
-                  </div>
-                  {p.last_run?.overall_verdict ? (
-                    <OverallBadge verdict={p.last_run.overall_verdict} />
-                  ) : (
-                    <span className="text-sm text-muted-foreground">No runs yet</span>
-                  )}
+          <EmptyState title="No sites yet">
+            Add your own site to test it, or start with the demo shop above.
+            <div className="mt-3">
+              <Button asChild variant="outline">
+                <Link to="/app/projects/new">
+                  <Plus aria-hidden /> Add your site
                 </Link>
-              </li>
+              </Button>
+            </div>
+          </EmptyState>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
+            {sites.map((p) => (
+              <div key={p.id} className="blueprint flex min-w-0 flex-col gap-2.5 p-[18px]">
+                <Corners />
+                <h3 className="text-xl">{p.name}</h3>
+                <p className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+                  <Globe className="size-4 shrink-0 stroke-[1.5]" aria-hidden />
+                  <span className="break-all">{p.base_url}</span>
+                </p>
+                <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+                  {p.last_run ? (
+                    <>
+                      {p.last_run.overall_verdict ? (
+                        <OverallBadge verdict={p.last_run.overall_verdict} />
+                      ) : (
+                        <StatusBadge status={p.last_run.status} />
+                      )}
+                      <span>{formatDate(p.last_run.created_at)}</span>
+                    </>
+                  ) : (
+                    <span>No runs yet</span>
+                  )}
+                </div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <Button variant="outline" asChild>
+                    <Link to={`/app/projects/${p.id}/runs/new`}>
+                      <Play aria-hidden /> New run
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
+                    <Link to={`/app/projects/${p.id}`}>
+                      <History aria-hidden /> History
+                    </Link>
+                  </Button>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
-      <section className="grid gap-3">
-        <h2 className="font-medium">Recent runs</h2>
+      {/* Recent runs */}
+      <section aria-labelledby="runs-title" className="flex flex-col gap-3">
+        <h2 id="runs-title" className="text-[26px]">Recent runs</h2>
         {runs.isError ? (
           <ErrorState message={runs.error.message} onRetry={() => runs.refetch()} />
-        ) : !runs.data || runs.data.length === 0 ? (
-          <EmptyState title="No runs yet">Your test runs will show up here.</EmptyState>
+        ) : runs.isPending ? (
+          <div className="h-32 animate-pulse bg-muted" />
+        ) : runs.data.length === 0 ? (
+          <EmptyState title="No runs yet">Your test runs and their reports will show up here.</EmptyState>
         ) : (
-          <ul className="divide-y rounded-lg border bg-background">
-            {runs.data.map((r) => (
-              <li key={r.id}>
-                <Link
-                  to={`/app/runs/${r.id}`}
-                  className="flex flex-wrap items-center justify-between gap-2 p-4 hover:bg-muted/40"
-                >
-                  <div>
-                    <p className="font-medium">{r.project_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {TEST_TYPE_LABEL[r.test_type]} · {formatDate(r.created_at)}
-                    </p>
-                  </div>
-                  {r.overall_verdict ? <OverallBadge verdict={r.overall_verdict} /> : <StatusBadge status={r.status} />}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <RunsTable runs={runs.data} label="Recent runs" />
         )}
       </section>
     </div>

@@ -1,15 +1,36 @@
-import { Loader2 } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useApproveRun, useCancelRun, usePatchPlan } from '@/api/hooks'
 import type { PlanScenario, Run } from '@/api/types'
+import { Corners } from '@/components/common/Corners'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-const KIND: Record<PlanScenario['kind'], { label: string; className: string }> = {
-  happy_path: { label: 'Happy path', className: 'bg-sky-50 text-sky-800 border-sky-200' },
-  negative: { label: 'Negative', className: 'bg-violet-50 text-violet-800 border-violet-200' },
-  edge_case: { label: 'Edge case', className: 'bg-slate-100 text-slate-700 border-slate-200' },
+const KIND: Record<PlanScenario['kind'], string> = {
+  happy_path: 'Happy path',
+  negative: 'Negative',
+  edge_case: 'Edge case',
+}
+
+/** Square on/off switch from the design. */
+function Switch({ on, disabled, label, onChange }: { on: boolean; disabled?: boolean; label: string; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!on)}
+      className={cn(
+        'mt-0.5 flex h-6 w-[42px] shrink-0 items-center border p-[3px] disabled:opacity-60',
+        on ? 'justify-end border-primary bg-primary' : 'justify-start border-input bg-transparent',
+      )}
+    >
+      <span className={cn('size-4', on ? 'bg-primary-foreground' : 'bg-muted-foreground')} />
+    </button>
+  )
 }
 
 export function PlanReview({ run }: { run: Run }) {
@@ -24,75 +45,72 @@ export function PlanReview({ run }: { run: Run }) {
     patch.mutate({ runId: run.id, body: { scenarios: [{ id, enabled: on }] } }, { onError })
 
   return (
-    <div className="grid gap-4">
-      <div className="rounded-xl border bg-background p-5">
-        <h2 className="text-lg font-medium">Review the test plan</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{plan.summary}</p>
-        <p className="mt-3 text-sm font-medium">
-          {enabled.length} checks · about {Math.max(1, enabled.length)} minutes
+    <div className="mx-auto flex w-full max-w-[920px] flex-col gap-5">
+      <div>
+        <h2 className="text-[clamp(26px,2.6vw,34px)]">Review the test plan</h2>
+        <p className="mt-1.5 max-w-[44em] text-pretty">{plan.summary}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Switch off any scenario you don’t need, then approve. Nothing has been tested yet.
         </p>
-        <p className="text-xs text-muted-foreground">Turn off anything you don't want tested, then approve.</p>
       </div>
 
-      <ul className="grid gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b pb-2.5 text-sm">
+        <span>
+          <strong className="font-semibold">
+            {enabled.length} of {plan.scenarios.length}
+          </strong>{' '}
+          selected · about {Math.max(1, enabled.length)} min
+        </span>
+      </div>
+
+      <ol className="flex flex-col">
         {plan.scenarios.map((s) => (
-          <li key={s.id} className={cn('rounded-xl border bg-background p-4 transition-opacity', !s.enabled && 'opacity-55')}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{s.id}</span>
-                  <span className={cn('rounded-full border px-2 py-0.5 text-xs', KIND[s.kind].className)}>
-                    {KIND[s.kind].label}
-                  </span>
-                </div>
-                <p className="mt-1 font-medium">{s.title}</p>
+          <li
+            key={s.id}
+            className="flex items-start gap-3.5 border-b border-[color-mix(in_srgb,var(--foreground)_9%,transparent)] px-1 py-3.5"
+          >
+            <Switch on={s.enabled} disabled={patch.isPending} label={`Include ${s.id}: ${s.title}`} onChange={(v) => toggle(s.id, v)} />
+            <div className={cn('min-w-0 flex-1 transition-opacity', !s.enabled && 'opacity-55')}>
+              <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                <span className="font-heading text-[15px] font-semibold text-steel-700">{s.id}</span>
+                <span className="font-semibold">{s.title}</span>
+                <span className="border px-1.5 text-[11px] text-muted-foreground">{KIND[s.kind]}</span>
               </div>
-              <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="size-4 accent-foreground"
-                  checked={s.enabled}
-                  disabled={patch.isPending}
-                  onChange={(e) => toggle(s.id, e.target.checked)}
-                  aria-label={`Include ${s.id}: ${s.title}`}
-                />
-                Include
-              </label>
-            </div>
-            <dl className="mt-3 grid gap-1 text-sm">
-              {s.test_data.length > 0 && (
-                <div>
-                  <dt className="inline text-muted-foreground">Test data: </dt>
-                  <dd className="inline">
+              <p className="mt-0.5 text-sm text-pretty">
+                <span className="text-muted-foreground">Expected: </span>
+                {s.expected_result}
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="break-all">Starts at {s.start_url}</span>
+                {s.test_data.length > 0 && (
+                  <span>
+                    Test data:{' '}
                     {s.test_data.map((d) => (
-                      <code key={d.key + d.value} className="mr-1 rounded bg-muted px-1.5 py-0.5 text-xs">
+                      <code key={d.key + d.value} className="mr-1 border px-1 font-mono text-[11.5px] text-foreground">
                         {d.value}
                       </code>
                     ))}
-                  </dd>
-                </div>
-              )}
-              <div>
-                <dt className="inline text-muted-foreground">Expected: </dt>
-                <dd className="inline">{s.expected_result}</dd>
+                  </span>
+                )}
               </div>
-              <div>
-                <dt className="inline text-muted-foreground">Starts at: </dt>
-                <dd className="inline">{s.start_url}</dd>
-              </div>
-            </dl>
+            </div>
           </li>
         ))}
-      </ul>
+      </ol>
 
-      <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t bg-muted/80 py-3 backdrop-blur">
-        <Button variant="ghost" disabled={cancel.isPending} onClick={() => cancel.mutate({ runId: run.id }, { onError })}>
-          Cancel
+      <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t bg-background py-3">
+        <Button variant="outline" size="lg" disabled={cancel.isPending} onClick={() => cancel.mutate({ runId: run.id }, { onError })}>
+          Cancel run
         </Button>
-        <Button size="lg" disabled={approve.isPending || enabled.length === 0}
-          onClick={() => approve.mutate({ runId: run.id }, { onError })}>
-          {approve.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
-          Approve &amp; run {enabled.length} checks
+        <Button
+          size="lg"
+          className="blueprint"
+          disabled={approve.isPending || enabled.length === 0}
+          onClick={() => approve.mutate({ runId: run.id }, { onError })}
+        >
+          <Corners />
+          {approve.isPending ? <Loader2 className="animate-spin" aria-hidden /> : <Check aria-hidden />}
+          Approve and start · {enabled.length} scenarios
         </Button>
       </div>
     </div>

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.browser.guards import GuardError, NetworkGuard, derive_allowed_origins, origin_of
 from agent.orchestrator import public_site_url
+from app.config import get_settings
 from app.db import get_session
 from app.models import Finding, Project, Run
 from app.schemas.runs import ProjectDetail, ProjectIn, ProjectOut, RunSummary
@@ -100,7 +101,7 @@ async def _check_reachable(url: str) -> None:
         ) from exc
     try:
         async with httpx.AsyncClient(timeout=8, follow_redirects=False) as client:
-            await client.get(url, headers={"User-Agent": "ShipCheck/0.1 (pre-release QA agent)"})
+            await client.get(url, headers={"User-Agent": get_settings().tester_user_agent_suffix})
     except httpx.HTTPError as exc:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,

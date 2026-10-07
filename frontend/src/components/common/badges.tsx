@@ -1,8 +1,8 @@
-import { Ban, CheckCircle2, CircleDashed, HelpCircle, Loader2, XCircle } from 'lucide-react'
+import { AlertTriangle, Bug, CheckCircle2, CircleDashed, HelpCircle, Loader2 } from 'lucide-react'
 
 import type { OverallVerdict, RunStatus, Verdict } from '@/api/types'
 import { cn } from '@/lib/utils'
-import { VERDICT_STYLES } from '@/lib/verdict'
+import { OVERALL_VERDICT, SCENARIO_VERDICT, TONE_CLASSES, type VerdictTone } from '@/lib/verdict'
 
 const STATUS_LABELS: Record<RunStatus, string> = {
   QUEUED: 'Queued',
@@ -17,37 +17,64 @@ const STATUS_LABELS: Record<RunStatus, string> = {
   CANCELLED: 'Cancelled',
 }
 
+export const TONE_ICON: Record<VerdictTone, typeof Bug> = {
+  pass: CheckCircle2,
+  bug: Bug,
+  blocked: AlertTriangle,
+  inc: HelpCircle,
+}
+
+const PILL = 'inline-flex w-fit items-center gap-1.5 border py-0.5 pr-2 pl-1.5 text-xs leading-[18px] font-medium whitespace-nowrap'
+
+/** Verdict pill: always color + icon + text, never color alone. */
+export function ToneBadge({ tone, label, className }: { tone: VerdictTone; label: string; className?: string }) {
+  const c = TONE_CLASSES[tone]
+  const Icon = TONE_ICON[tone]
+  return (
+    <span className={cn(PILL, c.fg, c.bg, c.bd, className)}>
+      <Icon className="size-3.5 stroke-[1.75]" aria-hidden />
+      {label}
+    </span>
+  )
+}
+
+export function VerdictBadge({ verdict }: { verdict: Verdict }) {
+  const v = SCENARIO_VERDICT[verdict]
+  return <ToneBadge tone={v.tone} label={v.label} />
+}
+
+export function OverallBadge({ verdict }: { verdict: OverallVerdict }) {
+  const v = OVERALL_VERDICT[verdict]
+  return <ToneBadge tone={v.tone} label={v.label} />
+}
+
 export function StatusBadge({ status }: { status: RunStatus }) {
   const active = !['COMPLETED', 'FAILED', 'CANCELLED', 'AWAITING_APPROVAL'].includes(status)
+  const failed = status === 'FAILED'
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium">
-      {active && <Loader2 className="size-3 animate-spin" aria-hidden />}
+    <span
+      className={cn(
+        PILL,
+        failed ? 'border-v-inc-bd bg-v-inc-bg text-v-inc' : 'border-steel-400 bg-steel-100 text-steel-700',
+      )}
+    >
+      {active ? (
+        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+      ) : (
+        <CircleDashed className="size-3.5 stroke-[1.75]" aria-hidden />
+      )}
       {STATUS_LABELS[status]}
     </span>
   )
 }
 
-export function OverallBadge({ verdict }: { verdict: OverallVerdict }) {
-  const style = VERDICT_STYLES[verdict]
-  return (
-    <span className={cn('rounded-full border px-2 py-0.5 text-xs font-medium', style.className)}>
-      {style.label}
-    </span>
-  )
-}
-
-const SCENARIO_ICONS: Record<Verdict, { icon: typeof CheckCircle2; label: string; color: string }> = {
-  PASSED: { icon: CheckCircle2, label: 'Passed', color: 'text-green-600' },
-  BUG_FOUND: { icon: XCircle, label: 'Bug found', color: 'text-red-600' },
-  BLOCKED: { icon: Ban, label: 'Blocked', color: 'text-gray-500' },
-  INCONCLUSIVE: { icon: HelpCircle, label: 'Inconclusive', color: 'text-gray-500' },
-}
-
+/** Small icon-only verdict marker for dense lists (scenario column in the live run). */
 export function ScenarioVerdictIcon({ verdict, running }: { verdict: Verdict | null; running?: boolean }) {
-  if (running) return <Loader2 className="size-4 shrink-0 animate-spin text-foreground" aria-label="Running" />
+  if (running) return <Loader2 className="size-4 shrink-0 animate-spin text-steel-700" aria-label="Running" />
   if (!verdict) return <CircleDashed className="size-4 shrink-0 text-muted-foreground" aria-label="Waiting" />
-  const { icon: Icon, label, color } = SCENARIO_ICONS[verdict]
-  return <Icon className={cn('size-4 shrink-0', color)} aria-label={label} />
+  const { tone, label } = SCENARIO_VERDICT[verdict]
+  const Icon = TONE_ICON[tone]
+  return <Icon className={cn('size-4 shrink-0 stroke-[1.75]', TONE_CLASSES[tone].fg)} aria-label={label} />
 }
 
 export const VERDICT_LABEL: Record<Verdict, string> = {

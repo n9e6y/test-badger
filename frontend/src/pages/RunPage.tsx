@@ -1,10 +1,9 @@
-import { ArrowLeft, Clock, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Clock, DollarSign, RotateCcw, Square } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { TERMINAL, useCancelRun, useRun, useStartRun } from '@/api/hooks'
-import type { Run } from '@/api/types'
-import { StatusBadge } from '@/components/common/badges'
+import type { Run, RunStatus } from '@/api/types'
 import { ErrorState, FullPageSpinner } from '@/components/common/states'
 import { ReportView } from '@/components/report/ReportView'
 import { LiveRun } from '@/components/run/LiveRun'
@@ -13,7 +12,7 @@ import { PlanReview } from '@/components/run/PlanReview'
 import { Button } from '@/components/ui/button'
 import { useElapsed } from '@/hooks/useElapsed'
 import { useRunEvents } from '@/hooks/useRunEvents'
-import { formatCost, formatDuration, TEST_TYPE_LABEL } from '@/lib/format'
+import { formatCost, formatDate, formatDuration, TEST_TYPE_LABEL } from '@/lib/format'
 
 /** One route for the whole run: the view is chosen by run.status, so refresh always lands right. */
 export function RunPage() {
@@ -27,7 +26,7 @@ export function RunPage() {
   const planning = r.status === 'RECON' || r.status === 'PLANNING' || (r.status === 'QUEUED' && !r.plan)
 
   return (
-    <div className="grid gap-6">
+    <div className="flex flex-col gap-6">
       <RunHeader run={r} />
       {planning ? (
         <Planning run={r} reconPages={live.reconPages} />
@@ -46,32 +45,70 @@ export function RunPage() {
   )
 }
 
+const KICKER: Record<RunStatus, string> = {
+  QUEUED: 'Queued',
+  RECON: 'Planning · exploring the site',
+  PLANNING: 'Planning · writing the test plan',
+  AWAITING_APPROVAL: 'Plan · waiting for your approval',
+  RUNNING: 'Live · running',
+  TRIAGING: 'Live · double-checking',
+  REPORTING: 'Live · writing the report',
+  COMPLETED: 'Report',
+  FAILED: 'Run failed',
+  CANCELLED: 'Run stopped',
+}
+
 function RunHeader({ run }: { run: Run }) {
   const cancel = useCancelRun()
   const elapsed = useElapsed(run.started_at, run.finished_at)
-  const active = !TERMINAL.includes(run.status) && run.status !== 'AWAITING_APPROVAL'
+  const terminal = TERMINAL.includes(run.status)
+  const active = !terminal && run.status !== 'AWAITING_APPROVAL'
+  const live = ['RUNNING', 'TRIAGING', 'REPORTING'].includes(run.status)
   return (
-    <div className="grid gap-2 print:hidden">
-      <Link to={`/app/projects/${run.project_id}`} className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden /> {run.project_name}
-      </Link>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-col gap-3 print:gap-1">
+      <Button variant="ghost" asChild className="-ml-3.5 w-fit print:hidden">
+        <Link to={`/app/projects/${run.project_id}`}>
+          <ArrowLeft aria-hidden /> {run.project_name}
+        </Link>
+      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight">{TEST_TYPE_LABEL[run.test_type]}</h1>
+          <p className="kicker flex items-center gap-2 font-semibold">
+            {live && (
+              <span aria-hidden className="size-2 rounded-full bg-v-bug [animation:tb-pulse_1.4s_ease-in-out_infinite]" />
+            )}
+            {KICKER[run.status]}
+            {terminal && ` · ${formatDate(run.created_at)}`}
+          </p>
+          <h1 className="mt-1 text-[clamp(26px,2.6vw,36px)]">
+            {run.project_name} · {TEST_TYPE_LABEL[run.test_type] ?? run.test_type}
+          </h1>
           <p className="truncate text-sm text-muted-foreground">{run.site_url}</p>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <StatusBadge status={run.status} />
+        <div className="flex flex-wrap items-stretch gap-2.5">
           {run.started_at && (
-            <span className="flex items-center gap-1 tabular-nums text-muted-foreground" title="Time testing">
-              <Clock className="size-3.5" aria-hidden /> {formatDuration(elapsed)}
-            </span>
+            <div title="Time testing" className="flex items-center gap-2 border px-3 py-1.5">
+              <Clock className="size-4 stroke-[1.5]" aria-hidden />
+              <span className="sr-only">Elapsed time</span>
+              <span role="timer" className="font-heading text-[22px] font-semibold tabular-nums">
+                {formatDuration(elapsed)}
+              </span>
+            </div>
           )}
-          <span className="tabular-nums text-muted-foreground" title="AI cost so far">{formatCost(run.cost_usd)}</span>
+          <div title="AI cost so far" className="flex items-center gap-2 border px-3 py-1.5">
+            <DollarSign className="size-4 stroke-[1.5]" aria-hidden />
+            <span className="sr-only">AI cost so far</span>
+            <span className="font-heading text-[22px] font-semibold tabular-nums">{formatCost(run.cost_usd)}</span>
+          </div>
           {active && (
-            <Button variant="outline" size="sm" disabled={cancel.isPending}
-              onClick={() => cancel.mutate({ runId: run.id }, { onError: (e) => toast.error(e.message) })}>
-              Stop
+            <Button
+              variant="outline"
+              size="lg"
+              className="print:hidden"
+              disabled={cancel.isPending}
+              onClick={() => cancel.mutate({ runId: run.id }, { onError: (e) => toast.error(e.message) })}
+            >
+              <Square aria-hidden /> Stop run
             </Button>
           )}
         </div>
@@ -84,21 +121,29 @@ function RetryButton({ run, label = 'Try again' }: { run: Run; label?: string })
   const start = useStartRun()
   const navigate = useNavigate()
   return (
-    <Button className="mt-4" variant="outline" disabled={start.isPending}
-      onClick={() => start.mutate({ projectId: run.project_id, input: { test_type: run.test_type, goal_text: run.goal_text ?? undefined } },
-        { onSuccess: (n) => navigate(`/app/runs/${n.id}`), onError: (e) => toast.error(e.message) })}>
-      <RotateCcw className="size-4" aria-hidden /> {label}
+    <Button
+      className="mt-2 w-fit"
+      variant="outline"
+      disabled={start.isPending}
+      onClick={() =>
+        start.mutate(
+          { projectId: run.project_id, input: { test_type: run.test_type, goal_text: run.goal_text ?? undefined } },
+          { onSuccess: (n) => navigate(`/app/runs/${n.id}`), onError: (e) => toast.error(e.message) },
+        )
+      }
+    >
+      <RotateCcw aria-hidden /> {label}
     </Button>
   )
 }
 
 function Failed({ run }: { run: Run }) {
   return (
-    <div className="rounded-xl border bg-background p-6">
-      <p className="font-medium">This run didn't finish</p>
-      <p className="mt-1 text-sm text-muted-foreground">{run.error_message || 'Something went wrong on our side.'}</p>
+    <div className="flex flex-col gap-1 border border-v-inc-bd bg-v-inc-bg p-6">
+      <p className="font-heading text-xl font-semibold">This run didn’t finish</p>
+      <p className="text-sm">{run.error_message || 'Something went wrong on our side.'}</p>
       {run.scenarios.some((s) => s.verdict) && (
-        <p className="mt-1 text-sm text-muted-foreground">Checks finished before the problem are kept in your run history.</p>
+        <p className="text-sm text-muted-foreground">Checks finished before the problem are kept in your run history.</p>
       )}
       <RetryButton run={run} />
     </div>
@@ -107,9 +152,9 @@ function Failed({ run }: { run: Run }) {
 
 function Cancelled({ run }: { run: Run }) {
   return (
-    <div className="rounded-xl border bg-background p-6">
-      <p className="font-medium">This run was stopped</p>
-      <p className="mt-1 text-sm text-muted-foreground">Start a new run whenever you're ready.</p>
+    <div className="flex flex-col gap-1 border p-6">
+      <p className="font-heading text-xl font-semibold">This run was stopped</p>
+      <p className="text-sm text-muted-foreground">Start a new run whenever you’re ready.</p>
       <RetryButton run={run} label="Start again" />
     </div>
   )

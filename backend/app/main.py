@@ -27,7 +27,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="ShipCheck API", docs_url="/api/docs", openapi_url="/api/openapi.json", lifespan=lifespan
+    title="test-badger API",
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
+    lifespan=lifespan,
 )
 
 for router in (health.router, auth.router, projects.router, runs.router, artifacts.router):
