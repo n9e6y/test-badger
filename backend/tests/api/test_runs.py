@@ -292,3 +292,19 @@ async def test_rerun_of_someone_elses_run_is_not_found(client: AsyncClient) -> N
     client.cookies.clear()
     await signup(client, "other@example.com")
     assert (await client.post(f"/api/runs/{run['id']}/rerun")).status_code == 404
+
+
+async def test_run_mode_is_stored_listed_and_kept_by_rerun(client: AsyncClient) -> None:
+    await signup(client)
+    assert (await start(client))["mode"] == "thorough"  # default = Hard
+    run = await start(client, mode="quick")
+    assert run["mode"] == "quick"
+    assert (await client.get("/api/runs")).json()[0]["mode"] == "quick"
+    await _finish(run["id"], _report({}, []), PLAN)
+    child = (await client.post(f"/api/runs/{run['id']}/rerun")).json()
+    assert child["mode"] == "quick"
+    r = await client.post(
+        f"/api/projects/{await demo_id(client)}/runs",
+        json={"test_type": "registration", "mode": "turbo"},
+    )
+    assert r.status_code == 422

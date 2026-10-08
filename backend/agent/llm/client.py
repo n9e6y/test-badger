@@ -139,6 +139,7 @@ class LLMClient:
     roles: dict[str, str] | None = None
     cost_cap_usd: float | None = None
     totals: Totals = field(default_factory=Totals)
+    mode: str = "thorough"  # D17: "quick" swaps in the cheaper executor model
 
     def __post_init__(self) -> None:
         settings = get_settings()
@@ -148,7 +149,11 @@ class LLMClient:
             self.roles = {
                 "recon": settings.llm_planner,
                 "planner": settings.llm_planner,
-                "executor": settings.llm_executor,
+                "executor": (
+                    settings.llm_executor_quick
+                    if self.mode == "quick" and settings.llm_executor_quick
+                    else settings.llm_executor
+                ),
                 "verifier": settings.llm_verifier,
                 "reporter": settings.llm_reporter,
                 "spike": settings.llm_executor,

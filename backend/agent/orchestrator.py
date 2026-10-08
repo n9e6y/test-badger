@@ -234,7 +234,7 @@ async def _load(run_id: str) -> tuple[Run, Project]:
 
 
 def _llm(run: Run) -> LLMClient:
-    llm = LLMClient(run_id=run.id, recorder=_record_llm_call)
+    llm = LLMClient(run_id=run.id, recorder=_record_llm_call, mode=run.mode)
     llm.totals.cost_usd = run.cost_usd  # the plan phase counts toward the run's cost cap
     return llm
 

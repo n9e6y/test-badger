@@ -1,14 +1,18 @@
 import { Globe, History, Layers, Loader2, Play, Plus, ShoppingCart, UserPlus } from 'lucide-react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { type TestChoice, useMe, useProjects, useRecentRuns, useStartTests } from '@/api/hooks'
+import type { RunMode } from '@/api/types'
 import { OverallBadge, StatusBadge } from '@/components/common/badges'
 import { Corners } from '@/components/common/Corners'
 import { RunsTable } from '@/components/common/RunsTable'
 import { EmptyState, ErrorState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { formatCost, formatDate, TEST_TYPE_LABEL } from '@/lib/format'
+import { MODES } from '@/lib/mode'
+import { cn } from '@/lib/utils'
 
 export function Dashboard() {
   const me = useMe()
@@ -21,10 +25,11 @@ export function Dashboard() {
   const firstName = me.data?.name.split(' ')[0]
   const lastDemo = demo ? runs.data?.find((r) => r.project_id === demo.id) : undefined
 
+  const [mode, setMode] = useState<RunMode>('thorough')
   const startDemo = (choice: TestChoice) => {
     if (!demo) return
     startRun.mutate(
-      { projectId: demo.id, choice, input: {} },
+      { projectId: demo.id, choice, input: { mode } },
       {
         onSuccess: ({ runs, notStarted }) => {
           if (notStarted) toast.error(`The Store run was not started: ${notStarted}`)
@@ -67,6 +72,27 @@ export function Dashboard() {
             A small store with 9 planted bugs in signup, cart and checkout. Run a test here to see the full flow (plan,
             live run, report) in about 5 minutes before you test your own site.
           </p>
+          <div role="radiogroup" aria-label="Mode" className="mt-1 flex w-fit border">
+            {(Object.keys(MODES) as RunMode[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                role="radio"
+                aria-checked={mode === key}
+                onClick={() => setMode(key)}
+                title={MODES[key].text}
+                className={cn(
+                  'min-h-9 px-3.5 text-sm [&+&]:border-l',
+                  mode === key ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
+                )}
+              >
+                {MODES[key].label}
+                <span className="ml-1.5 opacity-80">
+                  ${MODES[key].cost.registration.toFixed(2)}–{MODES[key].cost.store.toFixed(2)}
+                </span>
+              </button>
+            ))}
+          </div>
           <div className="mt-1.5 flex flex-wrap gap-2.5">
             <Button variant="outline" onClick={() => startDemo('registration')} disabled={!demo || startRun.isPending}>
               {pending('registration') ? <Loader2 className="animate-spin" aria-hidden /> : <UserPlus aria-hidden />}

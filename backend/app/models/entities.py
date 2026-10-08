@@ -68,6 +68,8 @@ class Run(Base):
     # D21: a re-run of an earlier run's plan points back to that run.
     parent_run_id: Mapped[str | None] = mapped_column(ForeignKey("runs.id"), index=True)
     test_type: Mapped[str] = mapped_column(String(50))
+    # D17: "thorough" (Hard) or "quick" (Easy) — picks the executor model.
+    mode: Mapped[str] = mapped_column(String(10), default="thorough", server_default="thorough")
     goal_text: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(30), default="QUEUED", index=True)
     credentials_enc: Mapped[bytes | None] = mapped_column(LargeBinary)

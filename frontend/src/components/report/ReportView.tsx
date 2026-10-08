@@ -10,6 +10,7 @@ import { Corners } from '@/components/common/Corners'
 import { VideoDialog } from '@/components/common/VideoDialog'
 import { Button } from '@/components/ui/button'
 import { formatCost, formatDate, formatDuration, TEST_TYPE_LABEL } from '@/lib/format'
+import { MODES } from '@/lib/mode'
 import { cn } from '@/lib/utils'
 import { OVERALL_VERDICT, TONE_CLASSES, type VerdictTone } from '@/lib/verdict'
 import { hasVideo } from '@/lib/video'
@@ -53,6 +54,7 @@ export function ReportView({ run, report }: { run: Run; report: Report }) {
   ]
   const details: [string, string][] = [
     ['Test', TEST_TYPE_LABEL[report.test_type] ?? report.test_type],
+    ['Mode', `${MODES[run.mode].label} (${run.mode === 'quick' ? 'lighter model' : 'strongest model'})`],
     ['Site', report.site_url],
     ['Started', formatDate(report.created_at)],
     ['Duration', formatDuration(report.stats.duration_s)],

@@ -18,6 +18,8 @@ export interface LoginInput {
 }
 
 export type TestType = 'registration' | 'store'
+/** D17: shown to users as Hard (thorough) / Easy (quick). */
+export type RunMode = 'thorough' | 'quick'
 export type RunStatus =
   | 'QUEUED'
   | 'RECON'
@@ -37,6 +39,7 @@ export interface RunSummary {
   project_id: string
   project_name: string
   test_type: TestType
+  mode: RunMode
   status: RunStatus
   overall_verdict: OverallVerdict | null
   findings_count: number
@@ -183,6 +186,7 @@ export interface Run {
   project_name: string
   site_url: string
   test_type: TestType
+  mode: RunMode
   goal_text: string | null
   status: RunStatus
   status_message: string
@@ -202,6 +206,7 @@ export interface Run {
 
 export interface StartRunInput {
   test_type: TestType
+  mode?: RunMode
   goal_text?: string
   test_email?: string
   test_password?: string

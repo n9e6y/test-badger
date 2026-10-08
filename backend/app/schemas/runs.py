@@ -6,6 +6,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 TestType = Literal["registration", "store"]
+RunMode = Literal["thorough", "quick"]  # D17: shown as Hard / Easy
 
 
 class ProjectIn(BaseModel):
@@ -22,6 +23,7 @@ class RunSummary(BaseModel):
     project_id: str
     project_name: str = ""
     test_type: str
+    mode: str = "thorough"
     status: str
     overall_verdict: str | None = None
     findings_count: int = 0
@@ -48,6 +50,7 @@ class ProjectDetail(ProjectOut):
 
 class RunIn(BaseModel):
     test_type: TestType
+    mode: RunMode = "thorough"
     goal_text: str | None = Field(default=None, max_length=2000)
     test_email: str | None = Field(default=None, max_length=320)
     test_password: str | None = Field(default=None, max_length=200)
@@ -99,6 +102,7 @@ class RunOut(BaseModel):
     project_name: str
     site_url: str
     test_type: str
+    mode: str = "thorough"
     goal_text: str | None
     status: str
     status_message: str

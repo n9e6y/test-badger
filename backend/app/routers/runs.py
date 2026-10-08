@@ -55,7 +55,8 @@ async def run_out(session: AsyncSession, run: Run) -> RunOut:
     message = run.error_message if run.status == "FAILED" else STATUS_MESSAGES.get(run.status, "")
     return RunOut(
         id=run.id, project_id=run.project_id, project_name=project.name,
-        site_url=public_site_url(project), test_type=run.test_type, goal_text=run.goal_text,
+        site_url=public_site_url(project), test_type=run.test_type, mode=run.mode,
+        goal_text=run.goal_text,
         status=run.status, status_message=message or "", error_message=run.error_message,
         plan=run.plan_json, scenarios=[ScenarioOut.model_validate(s) for s in scenarios],
         report=run.report_json, cost_usd=round(run.cost_usd, 4), tokens_in=run.tokens_in,
@@ -112,6 +113,7 @@ async def start_run(
         project_id=project.id,
         user_id=user.id,
         test_type=body.test_type,
+        mode=body.mode,
         goal_text=(body.goal_text or "").strip() or None,
         credentials_enc=creds,
     )
@@ -135,7 +137,8 @@ async def rerun(run_id: str, user: CurrentUser, session: Session, queue: Queue) 
     plan = refresh_plan_data(parent.plan_json, parent.id, child_id)
     run = Run(
         id=child_id, project_id=parent.project_id, user_id=user.id,
-        parent_run_id=parent.id, test_type=parent.test_type, goal_text=parent.goal_text,
+        parent_run_id=parent.id, test_type=parent.test_type, mode=parent.mode,
+        goal_text=parent.goal_text,
         credentials_enc=parent.credentials_enc, recon_json=parent.recon_json, plan_json=plan,
         approved_at=datetime.now(UTC),
     )  # fmt: skip

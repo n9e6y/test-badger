@@ -3,7 +3,7 @@
 **An AI agent that tests your website's critical flows before you release.**
 Give it your site and a goal, approve its test plan, watch it test in a real browser, and get a bug report with screenshots, console and network errors, and exact steps to reproduce.
 
-**Live:** https://app.185-204-171-151.sslip.io · **Demo shop (test target):** https://shop.185-204-171-151.sslip.io
+**Live demo:** the link is in our competition submission. You can also run the whole stack yourself (see [Run it yourself](#run-it-yourself)).
 
 Built for buildX, problem #4 "Web Workflow Tester".
 
@@ -12,7 +12,7 @@ Built for buildX, problem #4 "Web Workflow Tester".
 ## What it does
 
 1. **Add a site.** Enter a URL and confirm you own it or are authorized to test it.
-2. **Pick a test type.** *Registration* (signup with valid and invalid data, duplicate accounts, login) or *Store & checkout* (cart, quantities, coupons, stock, checkout up to the payment step).
+2. **Pick a test type and a mode.** *Registration* (signup with valid and invalid data, duplicate accounts, login), *Store & checkout* (cart, quantities, coupons, stock, checkout up to the payment step), or both. **Hard** mode lets the strongest model drive the browser; **Easy** uses a lighter model for about half the cost.
 3. **Approve the plan.** The agent explores the site, proposes test scenarios, and waits for you. You can switch scenarios off. Nothing is tested before you approve.
 4. **Watch it test.** Each scenario runs in a real Chromium browser. You see the live screenshot, every action the agent takes and why, the elapsed time and the AI cost so far.
 5. **Read the report.** Every scenario gets one of four verdicts: **Passed**, **Bug found**, **Blocked** (e.g. CAPTCHA) or **Inconclusive**. Every bug comes with screenshots, console and network errors, and steps to reproduce. You can copy a finding as Markdown or print the report as a PDF.
@@ -28,14 +28,14 @@ Our demo shop has 9 deliberately planted bugs in signup, cart and checkout (for 
 | Planted bugs found | **9 / 9** |
 | False findings | **0** in 13 evaluation runs (including runs on a bug-free version of the shop) |
 | Run time | Registration ~2.5 min, Store ~4.5 min (+ ~30 s planning) |
-| AI cost per run | Registration ~$0.29, Store ~$0.43 (Claude Sonnet); ~$0.15 / $0.26 with a Gemini Flash executor |
+| AI cost per run | **Hard:** Registration ~$0.29, Store ~$0.43 (Claude Sonnet drives the browser) · **Easy:** ~$0.15 / $0.26 (Gemini Flash; found 8/9 in its evaluation pair) |
 | Bot protection | A CAPTCHA on the entry page ends as a clear *Blocked* verdict with advice, at zero AI cost |
 
 The agent prefers *Inconclusive* over a weak *Bug found*. Across all runs, every miss surfaced as Inconclusive with a reason, never as a false Passed.
 
 ## How to try it
 
-1. Open the live site and **sign up** (name, email, password).
+1. Open the live site (link in the submission) and **sign up** (name, email, password).
 2. On the dashboard, start a test on the **Demo shop** (Registration, Store, or both), or click **Test your own site** and add a URL you are allowed to test.
 3. Approve the plan, watch the run, read the report. Past runs are listed under *Recent runs* and on each site's history page.
 
@@ -110,6 +110,7 @@ LLM_PLANNER=openai_compat:anthropic/claude-sonnet-5.5
 LLM_EXECUTOR=openai_compat:anthropic/claude-sonnet-5.5
 LLM_VERIFIER=openai_compat:anthropic/claude-sonnet-5.5
 LLM_REPORTER=openai_compat:anthropic/claude-haiku-4.5
+LLM_EXECUTOR_QUICK=openai_compat:google/gemini-3.8-flash   # executor for Easy mode
 ```
 
 Budgets (`RUN_COST_CAP_USD`, `MAX_CONCURRENT_RUNS`, `RUNS_PER_USER_PER_DAY`) and video recording (`VIDEO_ENABLED`) are also set in `.env`.

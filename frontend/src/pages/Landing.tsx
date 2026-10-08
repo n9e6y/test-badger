@@ -18,7 +18,7 @@ const STEPS = [
     n: '01',
     icon: ListChecks,
     title: 'Plan',
-    text: 'Pick what to test: signup or the store checkout. The agent explores your site and proposes scenarios. Switch off what you don’t need, then approve.',
+    text: 'Pick what to test (signup, store checkout, or both) and a mode: Hard for the most thorough test, Easy for half the cost. The agent explores your site and proposes scenarios. Switch off what you don’t need, then approve.',
   },
   {
     n: '02',

@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     llm_executor: str = "anthropic:claude-sonnet-5-5"
     llm_verifier: str = "anthropic:claude-sonnet-5-5"
     llm_reporter: str = "anthropic:claude-haiku-4-5"
+    # D17: executor for "quick" runs (shown as Easy). Empty = same as llm_executor.
+    llm_executor_quick: str = ""
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     openai_compat_api_key: str = ""

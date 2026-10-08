@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { useElapsed } from '@/hooks/useElapsed'
 import { useRunEvents } from '@/hooks/useRunEvents'
 import { formatCost, formatDate, formatDuration, TEST_TYPE_LABEL } from '@/lib/format'
+import { MODES } from '@/lib/mode'
 
 /** One route for the whole run: the view is chosen by run.status, so refresh always lands right. */
 export function RunPage() {
@@ -114,7 +115,7 @@ function RunHeader({ run }: { run: Run }) {
             {terminal && ` · ${formatDate(run.created_at)}`}
           </p>
           <h1 className="mt-1 text-[clamp(26px,2.6vw,36px)]">
-            {run.project_name} · {TEST_TYPE_LABEL[run.test_type] ?? run.test_type}
+            {run.project_name} · {TEST_TYPE_LABEL[run.test_type] ?? run.test_type} · {MODES[run.mode].label}
           </h1>
           <p className="truncate text-sm text-muted-foreground">
             {run.site_url}

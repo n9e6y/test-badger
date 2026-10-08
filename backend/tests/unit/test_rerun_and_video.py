@@ -92,3 +92,25 @@ def test_video_slices_pick_the_video_a_scenario_overlaps_most() -> None:
 
 def test_video_slices_without_videos_is_empty() -> None:
     assert video_slices([], {"R1": (0.0, 5.0)}) == {}
+
+
+def test_quick_mode_swaps_only_the_executor(monkeypatch: pytest.MonkeyPatch) -> None:
+    """D17: Easy (quick) uses the cheaper executor; every other stage stays the same."""
+    from agent.llm.client import LLMClient
+    from app.config import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "llm_executor", "openai_compat:big")
+    monkeypatch.setattr(settings, "llm_executor_quick", "openai_compat:small")
+    thorough = LLMClient(providers={}, mode="thorough").roles
+    quick = LLMClient(providers={}, mode="quick").roles
+    assert thorough is not None and quick is not None
+    assert (
+        thorough["executor"] == "openai_compat:big" and quick["executor"] == "openai_compat:small"
+    )
+    assert {k: v for k, v in thorough.items() if k != "executor"} == {
+        k: v for k, v in quick.items() if k != "executor"
+    }
+    monkeypatch.setattr(settings, "llm_executor_quick", "")  # not configured -> fall back
+    fallback = LLMClient(providers={}, mode="quick").roles
+    assert fallback is not None and fallback["executor"] == "openai_compat:big"

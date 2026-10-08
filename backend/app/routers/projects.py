@@ -54,6 +54,7 @@ async def run_summaries(session: AsyncSession, runs: list[Run]) -> list[RunSumma
             project_id=r.project_id,
             project_name=names.get(r.project_id, ""),
             test_type=r.test_type,
+            mode=r.mode,
             status=r.status,
             overall_verdict=(r.report_json or {}).get("overall_verdict"),
             findings_count=counts.get(r.id, 0),

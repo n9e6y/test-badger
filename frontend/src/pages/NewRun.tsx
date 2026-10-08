@@ -1,15 +1,17 @@
-import { AlertCircle, ArrowLeft, ArrowRight, Check, Globe, Layers, Loader2, ShoppingCart, UserPlus } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock, DollarSign, Globe, Layers, Loader2, ShoppingCart, UserPlus } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { toast } from 'sonner'
 
 import { type TestChoice, useProject, useStartTests } from '@/api/hooks'
+import type { RunMode, TestType } from '@/api/types'
 import { Corners } from '@/components/common/Corners'
 import { ErrorState, FullPageSpinner } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { estimate, MODES } from '@/lib/mode'
 import { cn } from '@/lib/utils'
 
 const TYPES: { key: TestChoice; title: string; text: string; icon: typeof UserPlus }[] = [
@@ -74,9 +76,13 @@ export function NewRun() {
   const start = useStartTests()
   const navigate = useNavigate()
   const [type, setType] = useState<TestChoice>('registration')
+  const [mode, setMode] = useState<RunMode>('thorough')
   const [goal, setGoal] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  const types: TestType[] = type === 'both' ? ['registration', 'store'] : [type]
+  const chosen = estimate(mode, types)
 
   if (project.isPending) return <FullPageSpinner />
   if (project.isError) return <ErrorState message={project.error.message} onRetry={() => project.refetch()} />
@@ -88,6 +94,7 @@ export function NewRun() {
         projectId,
         choice: type,
         input: {
+          mode,
           goal_text: goal.trim() || undefined,
           test_email: email.trim() || undefined,
           test_password: password || undefined,
@@ -132,7 +139,32 @@ export function NewRun() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-xl">2 · Details (all optional)</h2>
+        <h2 id="mode-title" className="text-xl">2 · Mode</h2>
+        <div role="radiogroup" aria-labelledby="mode-title" className="grid gap-4 sm:grid-cols-2">
+          {(Object.keys(MODES) as RunMode[]).map((key) => {
+            const est = estimate(key, types)
+            return (
+              <OptionCard key={key} checked={mode === key} onSelect={() => setMode(key)}>
+                <span className="font-heading text-[22px] font-semibold">{MODES[key].label}</span>
+                <span className="text-sm text-pretty">{MODES[key].text}</span>
+                <span className="mt-0.5 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  <span className="inline-flex items-center gap-1">
+                    <DollarSign className="size-4 stroke-[1.5]" aria-hidden />
+                    <strong className="font-semibold">{est.cost}</strong>
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="size-4 stroke-[1.5]" aria-hidden />
+                    {est.minutes}
+                  </span>
+                </span>
+              </OptionCard>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xl">3 · Details (all optional)</h2>
         <div className="blueprint flex flex-col gap-4 p-5">
           <Corners />
           <div className="grid gap-1.5">
@@ -183,12 +215,12 @@ export function NewRun() {
         <Corners />
         <p className="flex-[1_1_320px] text-sm text-pretty">
           The agent first explores the site (about a minute) and proposes a plan. Nothing is tested until you approve
-          it. {type === 'both' ? 'Both runs together take about 8–10 minutes.' : 'A full run takes about 3–5 minutes.'}
+          it. {MODES[mode].label} mode, {type === 'both' ? 'both tests' : 'this test'}: about {chosen.minutes.slice(1)}, AI cost {chosen.cost}.
         </p>
         <Button type="submit" size="lg" className="blueprint" disabled={start.isPending}>
           <Corners />
           {start.isPending && <Loader2 className="animate-spin" aria-hidden />}
-          Start planning
+          Start planning · {chosen.cost}
           <ArrowRight aria-hidden />
         </Button>
       </div>
