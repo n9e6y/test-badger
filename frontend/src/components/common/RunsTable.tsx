@@ -35,7 +35,7 @@ export function RunsTable({ runs, showSite = true, label }: { runs: RunSummary[]
             {TEST_TYPE_LABEL[r.test_type] ?? r.test_type}
             <span className="ml-2 border px-1.5 text-[11px] text-muted-foreground">{MODES[r.mode].label}</span>
             {r.parent_run_id && (
-              <span className="ml-2 border border-steel-400 px-1.5 text-[11px] text-steel-700">Re-run</span>
+              <span className="ml-2 border border-ink-400 px-1.5 text-[11px] text-ink-700">Re-run</span>
             )}
           </span>
           <span role="cell" className="w-36">

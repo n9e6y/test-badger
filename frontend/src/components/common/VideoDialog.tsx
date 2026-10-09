@@ -28,7 +28,7 @@ export function VideoDialog({ scenario, onClose }: { scenario: ScenarioRow; onCl
     >
       <div className="flex max-h-full w-full max-w-[1000px] flex-col gap-3 border bg-background p-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start gap-3">
-          <Film className="mt-1 size-5 shrink-0 stroke-[1.5] text-steel-700" aria-hidden />
+          <Film className="mt-1 size-5 shrink-0 stroke-[1.5] text-ink-700" aria-hidden />
           <div className="min-w-0 flex-1">
             <p className="font-heading text-xl font-semibold">
               {scenario.code} · {scenario.title}

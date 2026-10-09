@@ -51,7 +51,7 @@ export function ComparisonCard({ comparison }: { comparison: Comparison }) {
               key={i.scenario_id}
               className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 border-b border-[color-mix(in_srgb,var(--foreground)_9%,transparent)] px-1 py-2.5 text-sm"
             >
-              <span className="w-10 font-heading font-semibold text-steel-700">{i.scenario_id}</span>
+              <span className="w-10 font-heading font-semibold text-ink-700">{i.scenario_id}</span>
               <span className="min-w-0 flex-[1_1_240px]">
                 {i.title}
                 {i.bug_title && <span className="block text-xs text-muted-foreground">{i.bug_title}</span>}

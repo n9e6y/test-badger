@@ -60,7 +60,7 @@ function OtherPlans({ currentId }: { currentId: string }) {
         <li key={o.id}>
           <Link
             to={`/app/runs/${o.id}`}
-            className="flex flex-wrap items-center gap-x-3 gap-y-1 border border-steel-400 bg-steel-100 px-4 py-3 text-sm text-steel-800 hover:bg-steel-200"
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 border border-ink-400 bg-ink-100 px-4 py-3 text-sm text-ink-800 hover:bg-ink-200"
           >
             <ListChecks className="size-4 shrink-0" aria-hidden />
             <span className="min-w-0 flex-1">
@@ -81,7 +81,7 @@ function OtherPlans({ currentId }: { currentId: string }) {
 
 const KICKER: Record<RunStatus, string> = {
   QUEUED: 'Queued',
-  RECON: 'Planning · exploring the site',
+  RECON: 'Planning · digging through the site',
   PLANNING: 'Planning · writing the test plan',
   AWAITING_APPROVAL: 'Plan · waiting for your approval',
   RUNNING: 'Live · running',
@@ -107,7 +107,7 @@ function RunHeader({ run }: { run: Run }) {
       </Button>
       <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
         <div className="min-w-0">
-          <p className="kicker flex items-center gap-2 font-semibold">
+          <p className="kicker page-label font-semibold">
             {live && (
               <span aria-hidden className="size-2 rounded-full bg-v-bug [animation:tb-pulse_1.4s_ease-in-out_infinite]" />
             )}
@@ -122,7 +122,7 @@ function RunHeader({ run }: { run: Run }) {
             {run.parent_run_id && (
               <>
                 {' · '}
-                <Link to={`/app/runs/${run.parent_run_id}`} className="text-steel-700 underline underline-offset-2">
+                <Link to={`/app/runs/${run.parent_run_id}`} className="text-ink-700 underline underline-offset-2">
                   Re-run of an earlier run
                 </Link>
               </>

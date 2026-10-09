@@ -76,8 +76,8 @@ export function Landing() {
             <Logo />
           </div>
           <nav aria-label="Page" className="hidden items-center gap-5 text-[15px] md:flex">
-            <a href="#how" className="hover:text-steel-700">How it works</a>
-            <a href="#sample" className="hover:text-steel-700">Sample report</a>
+            <a href="#how" className="hover:text-ink-700">How it works</a>
+            <a href="#sample" className="hover:text-ink-700">Sample report</a>
           </nav>
           <Button variant="ghost" asChild>
             <Link to="/login">Log in</Link>
@@ -92,7 +92,7 @@ export function Landing() {
         {/* Hero */}
         <section className="grid items-center gap-x-14 gap-y-10 pt-10 pb-14 lg:grid-cols-2 lg:pt-14">
           <div className="flex min-w-0 flex-col gap-[18px]">
-            <p className="kicker">AI agent for pre-release testing</p>
+            <p className="kicker page-label">AI agent for pre-release testing</p>
             <h1 className="text-[clamp(40px,5vw,66px)] leading-[1.02] text-balance">
               Test your signup and checkout before every release.
             </h1>
@@ -142,7 +142,7 @@ export function Landing() {
             {STEPS.map(({ n, icon: Icon, title, text }) => (
               <div key={n} className="blueprint flex flex-col gap-2.5 p-[22px]">
                 <Corners />
-                <div className="flex items-center justify-between text-steel-700">
+                <div className="flex items-center justify-between text-ink-700">
                   <span className="font-heading text-[15px] font-semibold">{n}</span>
                   <Icon className="size-6 stroke-[1.5]" aria-hidden />
                 </div>

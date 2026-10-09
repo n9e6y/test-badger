@@ -57,7 +57,7 @@ function OptionCard({
       onClick={onSelect}
       className={cn(
         'relative flex min-w-0 flex-col gap-2 border p-[18px] text-left disabled:cursor-not-allowed disabled:opacity-55',
-        checked ? 'border-primary bg-steel-100 shadow-[0_0_0_1px_var(--primary)]' : 'enabled:hover:bg-accent',
+        checked ? 'border-primary bg-ink-100 shadow-[0_0_0_1px_var(--primary)]' : 'enabled:hover:bg-accent',
       )}
     >
       <span
@@ -141,7 +141,7 @@ export function NewRun() {
         <div role="radiogroup" aria-labelledby="type-title" className="grid gap-4 sm:grid-cols-3">
           {TYPES.map(({ key, title, text, icon: Icon }) => (
             <OptionCard key={key} checked={type === key} onSelect={() => setType(key)}>
-              <Icon className="size-6 stroke-[1.5] text-steel-700" aria-hidden />
+              <Icon className="size-6 stroke-[1.5] text-ink-700" aria-hidden />
               <span className="font-heading text-[22px] font-semibold">{title}</span>
               <span className="text-sm text-pretty">{text}</span>
             </OptionCard>

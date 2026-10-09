@@ -6,12 +6,14 @@
 @import "@fontsource/barlow/600.css";
 @import "@fontsource/barlow/700.css";
 @import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* test-badger look: the "Industry" wireframe system (claude_context/design/test-badger).
-   Steel accent on a light technical ground, Barlow Condensed headings over Barlow,
-   square hairline frames with "+" registration marks (.blueprint + <Corners />). */
+/* test-badger look: the "Industry" wireframe system, v3 (claude_context/design/test-badger-v2).
+   Black and white only (ink on paper); the four verdict colors are the only hues.
+   Barlow Condensed headings over Barlow, square hairline frames with "+" registration
+   marks (.blueprint + <Corners />), the badger stripe on page-level labels (.kicker). */
 @theme inline {
     --font-heading: "Barlow Condensed", system-ui, sans-serif;
     --font-sans: "Barlow", system-ui, sans-serif;
@@ -35,16 +37,16 @@
     --color-foreground: var(--foreground);
     --color-background: var(--background);
     --color-surface: var(--surface);
-    /* steel accent ramp: text-steel-700 for accent-colored body text (contrast) */
-    --color-steel-100: #eef6ff;
-    --color-steel-200: #d6ebff;
-    --color-steel-300: #b5d9fd;
-    --color-steel-400: #94bce3;
-    --color-steel-500: #749dc4;
-    --color-steel-600: #597ea3;
-    --color-steel-700: #416180;
-    --color-steel-800: #2c455d;
-    --color-steel-900: #1d2d3d;
+    /* ink ramp (greys): 100–300 tints for hover/selected, 400–500 muted, 700 = ink */
+    --color-ink-100: #f0f0f0;
+    --color-ink-200: #e0e0e0;
+    --color-ink-300: #c4c4c4;
+    --color-ink-400: #8a8a8a;
+    --color-ink-500: #4a4a4a;
+    --color-ink-600: #2a2a2a;
+    --color-ink-700: #0a0a0a;
+    --color-ink-800: #000000;
+    --color-ink-900: #000000;
     /* verdict colors — only used for verdicts (see lib/verdict.ts) */
     --color-v-pass: #1f6b3f;
     --color-v-pass-bg: #e2f0e7;
@@ -68,25 +70,25 @@
 }
 
 :root {
-    --background: #f2f2f3;
-    --surface: #e9e9ea;
-    --foreground: #1d1f20;
-    --card: #f2f2f3;
-    --card-foreground: #1d1f20;
-    --popover: #f2f2f3;
-    --popover-foreground: #1d1f20;
-    --primary: #5980a6;
+    --background: #ffffff;
+    --surface: #f4f4f4;
+    --foreground: #0a0a0a;
+    --card: #ffffff;
+    --card-foreground: #0a0a0a;
+    --popover: #ffffff;
+    --popover-foreground: #0a0a0a;
+    --primary: #0a0a0a;
     --primary-foreground: #ffffff;
     --secondary: transparent;
-    --secondary-foreground: #1d1f20;
-    --muted: #e7e7ea;
-    --muted-foreground: #5d5e61;
-    --accent: color-mix(in srgb, #1d1f20 7%, transparent);
-    --accent-foreground: #1d1f20;
+    --secondary-foreground: #0a0a0a;
+    --muted: #f0f0f0;
+    --muted-foreground: #4a4a4a;
+    --accent: #f0f0f0;
+    --accent-foreground: #0a0a0a;
     --destructive: #a8261d;
-    --border: color-mix(in srgb, #1d1f20 16%, transparent);
-    --input: color-mix(in srgb, #1d1f20 22%, transparent);
-    --ring: #5980a6;
+    --border: rgba(10, 10, 10, 0.18);
+    --input: rgba(10, 10, 10, 0.26);
+    --ring: #0a0a0a;
     --radius: 0px;
 }
 
@@ -108,12 +110,17 @@
     line-height: 1.1;
     letter-spacing: -0.01em;
   }
+  h1 {
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+  }
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
   ::selection {
-    background: color-mix(in srgb, #5980a6 30%, transparent);
+    background: color-mix(in srgb, #0a0a0a 18%, transparent);
   }
 }
 
@@ -143,13 +150,25 @@
 .blueprint > .corner.bl { bottom: -6px; left: -6px; }
 .blueprint > .corner.br { bottom: -6px; right: -6px; }
 
-/* Small uppercase label ("kicker") used above headings and section titles. */
+/* Small uppercase label ("kicker") used above headings and section titles,
+   led by the badger stripe (dark, light, dark): the stripe marks page-level labels only. */
 .kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 11px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   font-weight: 500;
-  color: var(--color-steel-700);
+  color: var(--color-ink-700);
+}
+.kicker.page-label::before {
+  content: "";
+  flex: none;
+  width: 15px;
+  height: 7px;
+  border: 1px solid currentColor;
+  background: linear-gradient(90deg, currentColor 0 33%, transparent 33% 67%, currentColor 67%);
 }
 }
 

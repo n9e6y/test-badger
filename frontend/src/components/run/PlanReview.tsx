@@ -72,7 +72,7 @@ export function PlanReview({ run }: { run: Run }) {
             <Switch on={s.enabled} disabled={patch.isPending} label={`Include ${s.id}: ${s.title}`} onChange={(v) => toggle(s.id, v)} />
             <div className={cn('min-w-0 flex-1 transition-opacity', !s.enabled && 'opacity-55')}>
               <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                <span className="font-heading text-[15px] font-semibold text-steel-700">{s.id}</span>
+                <span className="font-heading text-[15px] font-semibold text-ink-700">{s.id}</span>
                 <span className="font-semibold">{s.title}</span>
                 <span className="border px-1.5 text-[11px] text-muted-foreground">{KIND[s.kind]}</span>
               </div>

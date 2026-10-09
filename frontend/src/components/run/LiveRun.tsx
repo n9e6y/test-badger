@@ -37,7 +37,7 @@ export function LiveRun({ run, live }: { run: Run; live: LiveState }) {
   return (
     <div className="flex flex-col gap-4">
       {(checking || suspected.length > 0) && (
-        <div role="status" className="flex items-center gap-2 border border-steel-400 bg-steel-100 px-4 py-3 text-sm text-steel-800">
+        <div role="status" className="flex items-center gap-2 border border-ink-400 bg-ink-100 px-4 py-3 text-sm text-ink-800">
           {checking ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <AlertTriangle className="size-4" aria-hidden />}
           {checking
             ? 'Double-checking possible problems and writing the report…'
@@ -66,11 +66,11 @@ export function LiveRun({ run, live }: { run: Run; live: LiveState }) {
                     className={cn(
                       'flex w-full min-w-0 flex-col gap-1.5 px-3 py-2.5 text-left hover:bg-accent',
                       ROW_RULE,
-                      shown === s.code && 'bg-steel-100',
+                      shown === s.code && 'bg-ink-100',
                     )}
                   >
                     <span className="text-sm leading-snug">
-                      <span className="font-heading font-semibold text-steel-700">{s.code}</span> {s.title}
+                      <span className="font-heading font-semibold text-ink-700">{s.code}</span> {s.title}
                     </span>
                     <span className="flex items-center gap-2 text-xs text-muted-foreground">
                       {s.verdict ? (
@@ -113,7 +113,7 @@ export function LiveRun({ run, live }: { run: Run; live: LiveState }) {
                   className="w-full"
                 />
               ) : (
-                <div className="flex aspect-[16/10] items-center justify-center gap-2 text-sm text-steel-700">
+                <div className="flex aspect-[16/10] items-center justify-center gap-2 text-sm text-ink-700">
                   <Loader2 className="size-4 animate-spin" aria-hidden /> Waiting for the browser…
                 </div>
               )}

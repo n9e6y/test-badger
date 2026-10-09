@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 
 export function FullPageSpinner({ label = 'Loading…' }: { label?: string }) {
   return (
-    <div role="status" className="flex min-h-[50vh] items-center justify-center gap-2 text-steel-700">
+    <div role="status" className="flex min-h-[50vh] items-center justify-center gap-2 text-ink-700">
       <Loader2 className="size-5 animate-spin" aria-hidden />
       <span className="font-medium">{label}</span>
     </div>

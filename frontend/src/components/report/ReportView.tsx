@@ -89,7 +89,7 @@ export function ReportView({ run, report }: { run: Run; report: Report }) {
       {run.comparison && <ComparisonCard comparison={run.comparison} />}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-2.5 print:hidden">
-        <nav aria-label="Report sections" className="flex flex-wrap gap-x-5 gap-y-1 text-[15px] text-steel-700">
+        <nav aria-label="Report sections" className="flex flex-wrap gap-x-5 gap-y-1 text-[15px] text-ink-700">
           <a href="#findings" className="hover:underline">Findings ({report.findings.length})</a>
           {report.needs_review.length > 0 && (
             <a href="#review" className="hover:underline">Needs review ({report.needs_review.length})</a>
@@ -181,7 +181,7 @@ export function ReportView({ run, report }: { run: Run; report: Report }) {
             <div role="table" aria-label="All scenarios" className="flex flex-col">
               {report.scenarios.map((s) => (
                 <div key={s.id} role="row" className={cn('flex flex-wrap items-center gap-x-3.5 gap-y-1.5 px-1.5 py-3 text-sm', ROW_RULE)}>
-                  <span role="cell" className="w-10 font-heading font-semibold text-steel-700">{s.id}</span>
+                  <span role="cell" className="w-10 font-heading font-semibold text-ink-700">{s.id}</span>
                   <span role="cell" className="min-w-0 flex-[1_1_260px]">
                     {s.title}
                     <span className="block text-xs text-muted-foreground">{s.reason}</span>

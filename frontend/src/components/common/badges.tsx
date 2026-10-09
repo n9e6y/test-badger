@@ -55,7 +55,7 @@ export function StatusBadge({ status }: { status: RunStatus }) {
     <span
       className={cn(
         PILL,
-        failed ? 'border-v-inc-bd bg-v-inc-bg text-v-inc' : 'border-steel-400 bg-steel-100 text-steel-700',
+        failed ? 'border-v-inc-bd bg-v-inc-bg text-v-inc' : 'border-ink-400 bg-ink-100 text-ink-700',
       )}
     >
       {active ? (
@@ -70,7 +70,7 @@ export function StatusBadge({ status }: { status: RunStatus }) {
 
 /** Small icon-only verdict marker for dense lists (scenario column in the live run). */
 export function ScenarioVerdictIcon({ verdict, running }: { verdict: Verdict | null; running?: boolean }) {
-  if (running) return <Loader2 className="size-4 shrink-0 animate-spin text-steel-700" aria-label="Running" />
+  if (running) return <Loader2 className="size-4 shrink-0 animate-spin text-ink-700" aria-label="Running" />
   if (!verdict) return <CircleDashed className="size-4 shrink-0 text-muted-foreground" aria-label="Waiting" />
   const { tone, label } = SCENARIO_VERDICT[verdict]
   const Icon = TONE_ICON[tone]
