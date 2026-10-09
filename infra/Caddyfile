@@ -12,6 +12,17 @@
 		}
 	}
 
+	# Technical documentation (D30): static Claude Design export from technical-doc/
+	# (gitignored; copied to the server separately), mounted read-only at /srv/doc.
+	# /doc/ = documentation, /doc/deck = slide deck. The trailing slash keeps relative asset paths working.
+	redir /doc /doc/ 308
+	handle_path /doc/* {
+		root * /srv/doc
+		rewrite / "/test-badger Technical Documentation.dc.html"
+		rewrite /deck "/test-badger Technical Deck.dc.html"
+		file_server
+	}
+
 	handle {
 		root * /srv/frontend
 		try_files {path} /index.html
