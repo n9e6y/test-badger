@@ -89,7 +89,7 @@ The agent prefers *Inconclusive* over a weak *Bug found*: every miss surfaced as
 
 ## For judges
 
-Log in on the live site with the judge account from our submission (or sign up with any email; new accounts get Easy mode). Then test any site you like:
+Log in on the live site with the judge account from our submission (test runs on the public demo are reserved for that account). Then test any site you like:
 
 - **Your own choice of site:** click **Test your own site**, add the URL, pick a test type and a mode, approve the plan and watch it run. If a checkout needs a login, give a test account in the run form. Sites behind CAPTCHA or bot protection are reported as *Blocked*, not bypassed. Where the agent cannot finish a check, it marks it *Inconclusive* and says why, instead of guessing.
 - **Optional: our demo shop.** If you want a site where the right answers are known, the first card on the dashboard runs a test on our demo shop (Registration ~3 min, Store ~5 min). Its 9 planted bugs, which scenario finds each one, and the popups that must *not* be reported are listed in [docs/demo-shop-answer-key.md](docs/demo-shop-answer-key.md), so you can check the report yourself. The demo card tells the agent the shop's coupon codes, as an owner would tell a human tester.
@@ -99,7 +99,7 @@ On any report, **Watch video** on a scenario shows exactly what the agent did.
 <details>
 <summary><b>Accounts and limits</b></summary>
 
-Each account can start a limited number of runs per day, because every test costs real AI credit. New accounts use **Easy** mode; **Hard** mode is enabled for the judges' account (configurable, see `JUDGE_EMAIL` / `PUBLIC_MODES`). Past runs are listed under *Recent runs* on the dashboard and on each site's history page.
+Each account can start a limited number of runs per day, because every test costs real AI credit. On the public demo, test runs are reserved for the judges' account (configurable: `RUNS_PER_USER_PER_DAY`, `PUBLIC_MODES`, `JUDGE_EMAIL`); other accounts can sign up and look around. Past runs are listed under *Recent runs* on the dashboard and on each site's history page.
 </details>
 
 ---
