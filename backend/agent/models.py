@@ -16,7 +16,9 @@ Verdict = Literal["PASSED", "BUG_FOUND", "BLOCKED", "INCONCLUSIVE"]
 Confidence = Literal["high", "medium", "low"]
 Severity = Literal["critical", "major", "minor"]
 Area = Literal["signup", "login", "catalog", "cart", "coupon", "stock", "checkout", "other"]
-OverallVerdict = Literal["critical", "problems", "minor", "all_passed", "not_testable"]
+OverallVerdict = Literal[
+    "critical", "problems", "minor", "all_passed", "incomplete", "not_testable"
+]
 
 # ---------- Stage 1: recon ----------
 

@@ -126,7 +126,7 @@ class SimProvider:
                                 "key": "invalid_email" if i == "R3" else "valid_email",
                                 "value": "anna@" if i == "R3" else "sim@example.com",
                             },
-                            {"key": "valid_password", "value": "Secret123!"},
+                            {"key": "valid_password", "value": "Badger!sim00000Qx"},
                         ],
                         "expected_result": "As described in the template",
                         "enabled": True,

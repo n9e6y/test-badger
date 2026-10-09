@@ -39,7 +39,7 @@ export type RunStatus =
   | 'FAILED'
   | 'CANCELLED'
 export type Verdict = 'PASSED' | 'BUG_FOUND' | 'BLOCKED' | 'INCONCLUSIVE'
-export type OverallVerdict = 'critical' | 'problems' | 'minor' | 'all_passed' | 'not_testable'
+export type OverallVerdict = 'critical' | 'problems' | 'minor' | 'all_passed' | 'incomplete' | 'not_testable'
 
 export interface RunSummary {
   id: string

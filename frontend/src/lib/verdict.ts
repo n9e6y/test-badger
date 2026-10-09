@@ -25,5 +25,6 @@ export const OVERALL_VERDICT: Record<OverallVerdict, { label: string; tone: Verd
   problems: { label: 'Bugs found', tone: 'bug' },
   minor: { label: 'Minor bugs', tone: 'bug' },
   all_passed: { label: 'All passed', tone: 'pass' },
+  incomplete: { label: 'Partly tested', tone: 'inc' },
   not_testable: { label: 'Not testable', tone: 'blocked' },
 }

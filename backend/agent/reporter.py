@@ -41,9 +41,10 @@ def overall_verdict(findings: list[Finding], triaged: list[Triaged]) -> OverallV
         return "problems"
     if "minor" in severities:
         return "minor"
-    if any(t.verdict == "PASSED" for t in triaged):
+    if triaged and all(t.verdict == "PASSED" for t in triaged):
         return "all_passed"
-    return "not_testable"
+    # No bugs, but not every check finished: never green (06 §2.1).
+    return "incomplete" if triaged else "not_testable"
 
 
 def default_headline(verdict: OverallVerdict, n_findings: int) -> str:
@@ -53,6 +54,7 @@ def default_headline(verdict: OverallVerdict, n_findings: int) -> str:
                     f"release",
         "minor": "Minor issues found — safe to release with care",
         "all_passed": "All tested flows work",
+        "incomplete": "No bugs found, but not every check could be completed",
         "not_testable": "We couldn't test this site — see how to unblock",
     }[verdict]  # fmt: skip
 

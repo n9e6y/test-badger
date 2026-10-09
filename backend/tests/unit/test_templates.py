@@ -33,10 +33,13 @@ def test_ids_match_docs() -> None:
 
 
 def test_test_data_unique_email_per_run() -> None:
-    a = data_for_run("1234abcd-0000", ["valid_email", "invalid_emails"])
-    b = data_for_run("9999ffff-0000", ["valid_email"])
+    a = data_for_run("1234abcd-0000", ["valid_email", "invalid_emails", "valid_password"])
+    b = data_for_run("9999ffff-0000", ["valid_email", "valid_password"])
     assert a["valid_email"] == ["shipcheck+1234abcd@example.com"]
     assert a["valid_email"] != b["valid_email"]
+    # per-run password: not a well-known (leaked) one, differs per run, strong
+    assert a["valid_password"] == ["Badger!1234abcdQx"]
+    assert a["valid_password"] != b["valid_password"]
     assert '"anna@"' in format_test_data(a)
 
 

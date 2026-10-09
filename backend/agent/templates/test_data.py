@@ -10,9 +10,11 @@ LIBRARY: dict[str, list[str]] = {
     "valid_name": ["Anna Becker"],
     "valid_email": ["shipcheck+{run}@example.com"],
     "invalid_emails": ["anna@", "anna.example.com", "anna@@example.com"],
-    "valid_password": ["Secret123!"],
+    # Per run, so it is on no data-leak list: real sites reject well-known passwords
+    # (09 §7.4: "Secret123!" was refused as leaked). Strong: upper, lower, digit, symbol, 17 chars.
+    "valid_password": ["Badger!{run}Qx"],
     "weak_passwords": ["123", "password"],
-    "mismatch_password": ["Secret999!"],
+    "mismatch_password": ["Badger!{run}Zw"],
     "valid_phone": ["+49 30 1234567"],
     "valid_address": ["Torstraße 1"],
     "valid_city": ["Berlin"],

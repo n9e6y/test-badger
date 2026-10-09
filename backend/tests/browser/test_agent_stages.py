@@ -247,7 +247,8 @@ async def test_report_counts_verdict_and_writer_fallback() -> None:
         Triaged(scenario("R1"), res, "PASSED", "high", "ok"),
         Triaged(scenario("R2"), res, "INCONCLUSIVE", "medium", "lost"),
     ]
-    assert overall_verdict([], triaged) == "all_passed"
+    assert overall_verdict([], triaged) == "incomplete"
+    assert overall_verdict([], triaged[:1]) == "all_passed"
     report = await build_report(
         run_id="r",
         site_url="http://s",
@@ -257,7 +258,7 @@ async def test_report_counts_verdict_and_writer_fallback() -> None:
         llm=FakeLLM({}).client(),
         limits_hit=[],
     )
-    assert report.headline == "All tested flows work"
+    assert report.headline == "No bugs found, but not every check could be completed"
     assert report.coverage_note == "1 of 2 checks could not be completed."
     assert report.counts == {"passed": 1, "bug_found": 0, "blocked": 0, "inconclusive": 1}
 
