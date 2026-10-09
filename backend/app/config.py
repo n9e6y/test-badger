@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     judge_emails: str = ""  # comma-separated extra accounts with judge rights (e.g. eval bots)
     judge_runs_per_day: int = 10
     public_modes: str = "quick"  # comma-separated run modes public accounts may use
+    # D35: accounts that may run on the PUBLIC key and budget even when public runs are off
+    # (e.g. the owner recording the demo video). Every run mode, their own daily limit.
+    recorder_emails: str = ""
+    recorder_runs_per_day: int = 10
     # D26: AI budget per audience in USD (0 = no limit), counted from budget_start (ISO date).
     public_budget_usd: float = 0.50  # shared by every non-judge account
     judge_budget_usd: float = 3.00  # judge account + judge_emails

@@ -356,6 +356,28 @@ async def test_public_runs_switched_off(
     assert r.status_code == 403 and "reserved for the judges" in r.json()["detail"]
 
 
+async def test_recorder_account_runs_on_public_key_while_public_runs_are_off(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """D35: a RECORDER_EMAILS account may run (any mode) on the public tier; others may not."""
+    from app.config import get_settings
+    from app.services.accounts import policy_for
+
+    monkeypatch.setattr(get_settings(), "runs_per_user_per_day", 0)
+    monkeypatch.setattr(get_settings(), "recorder_emails", "Rec@Example.com")
+    policy = policy_for("rec@example.com")
+    assert policy.key_tier == "public" and not policy.is_judge
+    assert policy.modes == ("thorough", "quick") and policy.runs_per_day == 10
+    assert policy_for("someone@example.com").runs_per_day == 0
+    await client.post(
+        "/api/auth/signup",
+        json={"name": "Rec", "email": "rec@example.com", "password": "Secret123!"},
+    )
+    me = (await client.get("/api/auth/me")).json()
+    assert me["is_judge"] is False and me["runs_per_day"] == 10
+    assert (await start(client, mode="thorough"))["mode"] == "thorough"
+
+
 async def test_judge_account_is_seeded_and_cannot_be_taken_over(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:

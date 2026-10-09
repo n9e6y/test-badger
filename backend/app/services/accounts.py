@@ -3,6 +3,8 @@
 Judge accounts (JUDGE_EMAIL plus JUDGE_EMAILS) get every run mode, a higher daily limit and
 the judge key. Every other account can still sign up and finish the full flow, with the
 modes in PUBLIC_MODES, RUNS_PER_USER_PER_DAY runs a day and the public key.
+D35: accounts in RECORDER_EMAILS stay on the public key and budget, but get every run mode
+and RECORDER_RUNS_PER_DAY runs, even when public runs are switched off (D34).
 """
 
 from __future__ import annotations
@@ -45,6 +47,8 @@ def policy_for(email: str) -> AccountPolicy:
     settings = get_settings()
     if email.lower() in judge_emails(settings):
         return AccountPolicy(True, ALL_MODES, settings.judge_runs_per_day, "judge")
+    if email.lower() in set(_split(settings.recorder_emails)):
+        return AccountPolicy(False, ALL_MODES, settings.recorder_runs_per_day, "public")
     modes = tuple(m for m in _split(settings.public_modes) if m in ALL_MODES) or ("quick",)
     return AccountPolicy(False, modes, settings.runs_per_user_per_day, "public")
 
