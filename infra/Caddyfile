@@ -12,7 +12,7 @@
 		}
 	}
 
-	# Submission pages (D30, D31; noindex D32): static Claude Design exports from blog/ (gitignored; copied
+	# Submission pages (D30, D31, D38; noindex D32): static Claude Design exports from blog/ (gitignored; copied
 	# to the server separately), mounted read-only at /srv/blog. Trailing slashes keep relative
 	# asset paths working.
 	# /doc/ = technical documentation; the old deck link goes to the documentation (D33)
@@ -37,6 +37,20 @@
 		header X-Robots-Tag "noindex, nofollow"
 		rewrite / "/test-badger Business Plan Web v2.dc.html"
 		rewrite /print "/test-badger Business Plan.dc.html"
+		file_server
+	}
+
+	# /brand/ = brand page (D38); its sibling links go to the real pages
+	redir /brand /brand/ 308
+	handle_path /brand/* {
+		root * /srv/blog/brand
+		# keep submission pages out of search engines
+		header X-Robots-Tag "noindex, nofollow"
+		@brandbusinessplan path "/test-badger Business Plan*"
+		redir @brandbusinessplan /business-plan/ 302
+		@brandtechdocs path "/test-badger Tech Docs*"
+		redir @brandtechdocs /doc/ 302
+		rewrite / "/test-badger Brand.dc.html"
 		file_server
 	}
 

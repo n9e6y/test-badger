@@ -106,7 +106,7 @@ Each account can start a limited number of runs per day, because every test cost
 
 ```mermaid
 flowchart TB
-    U(["👤 You in the browser"]) -- HTTPS --> C
+    U(["You in the browser"]) -- HTTPS --> C
     subgraph server ["One server · Docker Compose"]
         C["Caddy<br/><sub>HTTPS · web app</sub>"] -- /api --> A["API<br/><sub>FastAPI</sub>"]
         A -- jobs --> R[("Redis<br/><sub>queue · live events</sub>")]
@@ -115,7 +115,7 @@ flowchart TB
         W --- P
         W --- V[("Volume<br/><sub>screenshots · videos</sub>")]
     end
-    W -- real Chromium --> S(["🌐 Site under test"])
+    W -- real Chromium --> S(["Site under test"])
     W -- tool calls --> L{{"Hosted LLMs<br/><sub>one multi-provider client</sub>"}}
     style server fill:none,stroke:#8a8a8a,stroke-dasharray:5 4
 ```
@@ -126,11 +126,11 @@ The API never opens a browser: it queues jobs, and the worker runs the agent and
 
 ```mermaid
 flowchart LR
-    R["🔍 Recon<br/><sub>find the pages</sub>"] --> P["📝 Planner<br/><sub>propose scenarios</sub>"]
-    P --> H{"✋ You approve<br/>the plan"}
-    H -- approved --> E["▶️ Executor<br/><sub>run each scenario</sub>"]
-    E --> T["⚖️ Triage<br/><sub>verify suspected bugs</sub>"]
-    T --> Rep["📄 Report<br/><sub>verdicts + evidence</sub>"]
+    R["Recon<br/><sub>find the pages</sub>"] --> P["Planner<br/><sub>propose scenarios</sub>"]
+    P --> H{"You approve<br/>the plan"}
+    H -- approved --> E["Executor<br/><sub>run each scenario</sub>"]
+    E --> T["Triage<br/><sub>verify suspected bugs</sub>"]
+    T --> Rep["Report<br/><sub>verdicts + evidence</sub>"]
 ```
 
 | Stage | What happens |
@@ -145,11 +145,11 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    O["👁️ Observe<br/><sub>page snapshot<br/>+ screenshot if needed</sub>"] --> D["🧠 Decide<br/><sub>the LLM picks one tool:<br/>click · type · navigate…</sub>"]
-    D --> G{"🛡️ Guards<br/><sub>allowlist · private network<br/>payment · budgets</sub>"}
-    G -- allowed --> X["⚡ Act<br/><sub>Playwright</sub>"]
-    G -- blocked --> B["⛔ Refused<br/><sub>with the reason</sub>"]
-    X --> Rec["🎥 Record<br/><sub>step · screenshot<br/>console · network</sub>"]
+    O["Observe<br/><sub>page snapshot<br/>+ screenshot if needed</sub>"] --> D["Decide<br/><sub>the LLM picks one tool:<br/>click · type · navigate…</sub>"]
+    D --> G{"Guards<br/><sub>allowlist · private network<br/>payment · budgets</sub>"}
+    G -- allowed --> X["Act<br/><sub>Playwright</sub>"]
+    G -- blocked --> B["Refused<br/><sub>with the reason</sub>"]
+    X --> Rec["Record<br/><sub>step · screenshot<br/>console · network</sub>"]
     B --> Rec
     Rec -- next step --> O
 ```
@@ -160,13 +160,13 @@ The model only *suggests* the next action. Code decides whether it may happen, a
 
 | Rule | What it means |
 |---|---|
-| 🛡️ **The LLM decides, the code enforces** | The origin allowlist, private-network (SSRF) block, payment and destructive-action guards, and step and cost budgets live in code (`agent/browser/guards.py`), not only in prompts |
-| ✅ **Validated output** | Every LLM output is a Pydantic model, with one retry on invalid output, then a clean failure |
-| 🔒 **Secrets never reach the model** | Test credentials are placeholders swapped in by the tool layer; password fields are masked in screenshots |
-| 🎥 **Evidence comes from recordings** | Screenshots, video, console and network errors are captured by Playwright and attached by code |
-| ⚖️ **Honest verdicts** | Green only when every check passed; anything the agent could not finish is reported as such, with a reason |
-| 🧩 **Generic core, pluggable flows** | Each test type is one template file in `agent/templates/`; a new flow (login, contact form, booking) needs no core changes |
-| 🔌 **One multi-provider LLM client** | Anthropic, OpenAI or any OpenAI-compatible endpoint (e.g. OpenRouter), model chosen per role, tokens and cost recorded for every call. No local models |
+| **The LLM decides, the code enforces** | The origin allowlist, private-network (SSRF) block, payment and destructive-action guards, and step and cost budgets live in code (`agent/browser/guards.py`), not only in prompts |
+| **Validated output** | Every LLM output is a Pydantic model, with one retry on invalid output, then a clean failure |
+| **Secrets never reach the model** | Test credentials are placeholders swapped in by the tool layer; password fields are masked in screenshots |
+| **Evidence comes from recordings** | Screenshots, video, console and network errors are captured by Playwright and attached by code |
+| **Honest verdicts** | Green only when every check passed; anything the agent could not finish is reported as such, with a reason |
+| **Generic core, pluggable flows** | Each test type is one template file in `agent/templates/`; a new flow (login, contact form, booking) needs no core changes |
+| **One multi-provider LLM client** | Anthropic, OpenAI or any OpenAI-compatible endpoint (e.g. OpenRouter), model chosen per role, tokens and cost recorded for every call. No local models |
 
 ## Tech stack
 
