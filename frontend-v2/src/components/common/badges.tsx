@@ -98,3 +98,13 @@ export function RunResultBadge({ run }: { run: RunSummary }) {
   const label = v.tone === 'bug' && run.findings_count > 0 ? `Bug found · ${run.findings_count}` : v.label
   return <ToneBadge tone={v.tone} label={label} />
 }
+
+/** "Needs review": dashed ink with an eye (new-app TB-Verdict "review"). */
+export function ReviewBadge() {
+  return (
+    <span className={cn(PILL, 'border-dashed border-foreground text-foreground')}>
+      <Eye className="size-3.5 stroke-[2.5]" aria-hidden />
+      Needs review
+    </span>
+  )
+}

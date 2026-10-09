@@ -1,10 +1,9 @@
-import { Activity, CheckCircle2, Copy, Film, Terminal } from 'lucide-react'
+import { Check, Copy, Film } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import type { Finding } from '@/api/types'
-import { ToneBadge } from '@/components/common/badges'
-import { Corners } from '@/components/common/Corners'
+import { ReviewBadge, ToneBadge } from '@/components/common/badges'
 import { Lightbox } from '@/components/common/Lightbox'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -13,7 +12,7 @@ import { cn } from '@/lib/utils'
 const SEVERITY: Record<Finding['severity'], { label: string; className: string }> = {
   critical: { label: 'Critical', className: 'border-foreground bg-foreground text-background' },
   major: { label: 'Major', className: 'border-foreground' },
-  minor: { label: 'Minor', className: 'border-border text-muted-foreground' },
+  minor: { label: 'Minor', className: 'border-border' },
 }
 
 export function findingMarkdown(f: Finding, siteUrl: string): string {
@@ -37,26 +36,7 @@ export function findingMarkdown(f: Finding, siteUrl: string): string {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <p className="kicker mb-1.5">{children}</p>
-}
-
-function LogPanel({ icon: Icon, title, lines, empty }: { icon: typeof Terminal; title: string; lines: string[]; empty: string }) {
-  return (
-    <div className="min-w-0 border">
-      <div className="flex items-center gap-1.5 border-b px-2.5 py-1.5 text-[13px] font-semibold">
-        <Icon className="size-4 stroke-[1.5]" aria-hidden />
-        {title}
-      </div>
-      <pre
-        className={cn(
-          'm-0 p-2.5 font-mono text-[12.5px] leading-normal break-words whitespace-pre-wrap',
-          lines.length ? 'text-v-bug' : 'text-muted-foreground',
-        )}
-      >
-        {lines.length ? lines.join('\n') : empty}
-      </pre>
-    </div>
-  )
+  return <p className="mb-1.5 text-xs font-semibold tracking-[0.14em] uppercase">{children}</p>
 }
 
 export function FindingCard({
@@ -85,84 +65,88 @@ export function FindingCard({
     }
   }
   const sev = SEVERITY[f.severity]
+  const logs = [...f.evidence.console_errors, ...f.evidence.failed_requests]
 
   return (
-    <article className="blueprint flex break-inside-avoid flex-col gap-[18px] p-[22px]">
-      <Corners />
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={cn('border px-2 py-0.5 text-xs font-semibold', sev.className)}>{sev.label}</span>
-        {review ? <ToneBadge tone="inc" label="Needs review" /> : <ToneBadge tone="bug" label="Bug found" />}
-        <span className="text-[13px] text-muted-foreground">
-          Scenario {f.scenario_id} · {f.area}
+    <article className={cn('break-inside-avoid bg-background', review ? 'border border-dashed border-foreground' : 'border border-foreground')}>
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 border-b px-[18px] py-3.5">
+        {review ? <ReviewBadge /> : <ToneBadge tone="bug" label="Bug found" />}
+        <span className={cn('border px-2 py-[3px] text-xs leading-4 font-semibold tracking-[0.05em] uppercase', sev.className)}>
+          Severity · {sev.label}
+        </span>
+        <span className="text-[13px] font-semibold">
+          {f.area} · {f.scenario_id}
         </span>
         {f.confirmed && (
-          <span className="flex items-center gap-1 text-[13px] text-v-pass">
-            <CheckCircle2 className="size-3.5" aria-hidden /> Reproduced
+          <span className="flex items-center gap-1 text-[13px] font-semibold text-v-pass">
+            <Check className="size-3.5 stroke-[2.75]" aria-hidden /> Reproduced
           </span>
         )}
       </div>
-      <div className="flex flex-col gap-1.5">
-        <h3 className="text-2xl text-pretty">{f.title}</h3>
-        <p className="text-pretty">{f.owner_summary}</p>
-      </div>
 
-      <div className="grid gap-x-7 gap-y-3 text-sm sm:grid-cols-2">
-        <div>
-          <Label>Expected</Label>
-          {f.expected}
-        </div>
-        <div>
-          <Label>Actual</Label>
-          {f.actual}
-        </div>
-      </div>
-
-      {images.length > 0 && (
-        <div>
-          <Label>Screenshots · {images.length}</Label>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
-            {images.map((img, i) => (
-              <button
-                key={img.src}
-                type="button"
-                onClick={() => setLightbox(i)}
-                aria-label={`Open screenshot ${i + 1}`}
-                className="block cursor-zoom-in border bg-white hover:border-primary"
-              >
-                <img src={img.src} alt={img.caption} className="aspect-[16/10] w-full object-cover object-top" loading="lazy" />
-              </button>
-            ))}
+      <div className="flex flex-wrap gap-x-8 gap-y-5 p-[18px]">
+        <div className="flex min-w-0 flex-[1.3_1_360px] flex-col gap-3.5">
+          <h3 className="text-[26px] leading-[1.05] text-pretty">{f.title}</h3>
+          <p className="text-[15px] leading-relaxed text-pretty">{f.owner_summary}</p>
+          <p className="text-[15px] leading-relaxed">
+            <strong className="font-semibold">Expected:</strong> {f.expected}
+            <br />
+            <strong className="font-semibold">Actual:</strong> {f.actual}
+          </p>
+          <div>
+            <Label>Steps to reproduce</Label>
+            <ol className="flex list-decimal flex-col gap-[3px] pl-[22px] text-[15px] leading-normal">
+              {f.repro_steps.map((s) => (
+                <li key={s.order}>{s.action}</li>
+              ))}
+            </ol>
+            <p className="mt-2 font-mono text-[13px] break-all">{f.evidence.page_url || siteUrl}</p>
+          </div>
+          <div>
+            <Label>Console and network</Label>
+            <pre className="m-0 border bg-surface px-3.5 py-3 font-mono text-[13px] leading-relaxed break-words whitespace-pre-wrap">
+              {logs.length ? logs.join('\n') : 'No console errors or failed requests.'}
+            </pre>
           </div>
         </div>
-      )}
 
-      <div>
-        <Label>Steps to reproduce</Label>
-        <ol className="grid list-decimal gap-1 pl-[22px]">
-          {f.repro_steps.map((s) => (
-            <li key={s.order}>{s.action}</li>
-          ))}
-        </ol>
-        <p className="mt-2 text-[13px] break-all text-muted-foreground">Page: {f.evidence.page_url || siteUrl}</p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <LogPanel icon={Terminal} title="Console" lines={f.evidence.console_errors} empty="No console errors." />
-        <LogPanel icon={Activity} title="Network" lines={f.evidence.failed_requests} empty="No failed requests." />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2.5 print:hidden">
-        <div className="flex flex-wrap gap-2.5">
-          {onWatch && (
-            <Button variant="outline" onClick={onWatch}>
-              <Film aria-hidden /> Watch video
-            </Button>
+        <div className="flex min-w-0 flex-[1_1_260px] flex-col gap-2">
+          {images.length > 0 && (
+            <>
+              <Label>Screenshots · click to enlarge</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {images.map((img, i) => (
+                  <button
+                    key={img.src}
+                    type="button"
+                    onClick={() => setLightbox(i)}
+                    aria-label={`Enlarge screenshot ${i + 1}`}
+                    className="flex cursor-zoom-in flex-col gap-1 text-left"
+                  >
+                    <img
+                      src={img.src}
+                      alt={img.caption}
+                      className="aspect-[4/3] w-full border bg-white object-cover object-top hover:border-foreground"
+                      loading="lazy"
+                    />
+                    <span className="text-[11px] font-semibold">Step {i + 1}</span>
+                  </button>
+                ))}
+              </div>
+            </>
           )}
-          <Button variant="outline" onClick={copy}>
-            <Copy aria-hidden /> Copy as text
-          </Button>
+          <div className="mt-1 flex flex-wrap gap-2 print:hidden">
+            {onWatch && (
+              <Button variant="outline" onClick={onWatch}>
+                <Film aria-hidden /> Watch video
+              </Button>
+            )}
+            <Button variant="outline" onClick={copy}>
+              <Copy aria-hidden /> Copy as text
+            </Button>
+          </div>
+          <span className="text-[13px]">Confidence: {f.confidence}</span>
         </div>
-        <span className="text-xs text-muted-foreground">Confidence: {f.confidence}</span>
       </div>
 
       {lightbox !== null && <Lightbox images={images} index={lightbox} onIndex={setLightbox} onClose={() => setLightbox(null)} />}

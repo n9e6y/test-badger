@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 import type { CompareStatus, Comparison } from '@/api/types'
 import { ToneBadge, VerdictBadge } from '@/components/common/badges'
-import { Corners } from '@/components/common/Corners'
+import { GridPanel } from '@/components/common/GridPanel'
 import { formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { VerdictTone } from '@/lib/verdict'
@@ -29,10 +29,9 @@ export function ComparisonCard({ comparison }: { comparison: Comparison }) {
   ].join(' · ')
 
   return (
-    <section aria-labelledby="compare-title" className="blueprint flex flex-col gap-4 p-[22px]">
-      <Corners />
+    <GridPanel aria-labelledby="compare-title" className="flex flex-col gap-4 p-[22px]">
       <div>
-        <p className="kicker">
+        <p className="kicker page-label font-semibold">
           Re-run of the same plan · compared with the{' '}
           <Link to={`/app/runs/${comparison.parent_run_id}`} className="underline underline-offset-2">
             run of {formatDate(comparison.parent_created_at)}
@@ -49,9 +48,9 @@ export function ComparisonCard({ comparison }: { comparison: Comparison }) {
           return (
             <li
               key={i.scenario_id}
-              className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 border-b border-[color-mix(in_srgb,var(--foreground)_9%,transparent)] px-1 py-2.5 text-sm"
+              className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 border-b bg-background px-2 py-2.5 text-sm"
             >
-              <span className="w-10 font-heading font-semibold text-ink-700">{i.scenario_id}</span>
+              <span className="w-10 font-heading font-semibold">{i.scenario_id}</span>
               <span className="min-w-0 flex-[1_1_240px]">
                 {i.title}
                 {i.bug_title && <span className="block text-xs text-muted-foreground">{i.bug_title}</span>}
@@ -72,6 +71,6 @@ export function ComparisonCard({ comparison }: { comparison: Comparison }) {
           )
         })}
       </ul>
-    </section>
+    </GridPanel>
   )
 }

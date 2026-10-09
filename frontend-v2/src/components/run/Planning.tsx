@@ -1,40 +1,47 @@
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 import type { Run } from '@/api/types'
-import { Corners } from '@/components/common/Corners'
 
+/** Planning state: what the agent is doing, and the pages it found so far (new-app "What it found"). */
 export function Planning({ run, reconPages }: { run: Run; reconPages: { url: string; title: string }[] }) {
   const planning = run.status === 'PLANNING'
+  const path = (u: string) => {
+    try {
+      return new URL(u).pathname || '/'
+    } catch {
+      return u
+    }
+  }
   return (
-    <div className="blueprint mx-auto flex w-full max-w-[640px] flex-col gap-6 px-7 py-8">
-      <Corners />
+    <div className="flex max-w-[760px] flex-col gap-6">
       <div role="status" className="flex items-start gap-3">
-        <Loader2 className="mt-1 size-5 shrink-0 animate-spin text-ink-700" aria-hidden />
-        <div>
-          <p className="font-heading text-2xl font-semibold">{run.status_message || 'Getting ready…'}</p>
-          <p className="text-sm text-muted-foreground">
-            The agent explores the site and writes a test plan for you to review. Usually under a minute.
+        <Loader2 className="mt-1 size-5 shrink-0 animate-spin" aria-hidden />
+        <div className="flex flex-col gap-1">
+          <p className="font-heading text-2xl leading-tight font-semibold">{run.status_message || 'Getting ready…'}</p>
+          <p className="text-[17px] leading-relaxed">
+            test-badger explores the site and writes a test plan for you to review. Usually under a minute. Nothing is
+            typed into your site yet.
           </p>
         </div>
       </div>
-      <ol className="flex flex-col text-sm" aria-live="polite">
-        <li className="flex items-center gap-2 border-b py-2">
-          <CheckCircle2 className="size-4 shrink-0 stroke-[1.75] text-ink-700" aria-hidden /> Opening {run.site_url}
-        </li>
-        {reconPages.map((p) => (
-          <li key={p.url} className="flex min-w-0 items-center gap-2 border-b py-2">
-            <CheckCircle2 className="size-4 shrink-0 stroke-[1.75] text-ink-700" aria-hidden />
-            <span className="shrink-0">Found</span>
-            <span className="shrink-0 font-mono text-[12.5px]">{new URL(p.url).pathname}</span>
-            <span className="truncate text-muted-foreground">· {p.title}</span>
-          </li>
-        ))}
+      <div className="flex flex-col gap-2.5 border bg-surface px-[18px] py-4" aria-live="polite">
+        <span className="text-xs font-semibold tracking-[0.14em] uppercase">What it found so far</span>
+        <div className="flex flex-wrap gap-2">
+          <span className="border bg-background px-2.5 py-1.5 font-mono text-[13px] break-all">
+            {run.site_url.replace(/^https?:\/\//, '')}
+          </span>
+          {reconPages.map((p) => (
+            <span key={p.url} title={p.title} className="border bg-background px-2.5 py-1.5 font-mono text-[13px] break-all">
+              {path(p.url)}
+            </span>
+          ))}
+        </div>
         {planning && (
-          <li className="flex items-center gap-2 py-2 text-ink-700">
+          <span className="flex items-center gap-2 text-sm font-semibold">
             <Loader2 className="size-4 animate-spin" aria-hidden /> Writing the test plan…
-          </li>
+          </span>
         )}
-      </ol>
+      </div>
     </div>
   )
 }

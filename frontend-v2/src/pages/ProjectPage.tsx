@@ -1,8 +1,6 @@
-import { ArrowLeft, Globe, Play } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 
 import { useProject } from '@/api/hooks'
-import { Corners } from '@/components/common/Corners'
 import { OwnShopNote } from '@/components/common/OwnShopNote'
 import { RunsTable } from '@/components/common/RunsTable'
 import { EmptyState, ErrorState, FullPageSpinner } from '@/components/common/states'
@@ -17,28 +15,22 @@ export function ProjectPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Button variant="ghost" asChild className="-ml-3.5 w-fit">
-        <Link to="/app">
-          <ArrowLeft aria-hidden /> Dashboard
+      <nav aria-label="Breadcrumb" className="flex gap-2 text-sm">
+        <Link to="/app/sites" className="font-semibold underline-offset-4 hover:underline">
+          Sites
         </Link>
-      </Button>
+        <span aria-hidden>/</span>
+        <span>{p.name}</span>
+      </nav>
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Globe className="size-4 shrink-0 stroke-[1.5]" aria-hidden />
-            <span className="break-all">{p.base_url}</span>
-          </p>
-          <h1 className="mt-1.5 text-[clamp(30px,3vw,40px)]">{p.name}</h1>
-          {p.is_demo && (
-            <p className="mt-1 text-muted-foreground">Our demo store with 9 planted bugs. Try both test types.</p>
-          )}
-          {!p.is_demo && <OwnShopNote url={p.base_url} className="mt-1.5" />}
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <h1 className="text-[clamp(40px,4vw,52px)] leading-[0.95]">{p.name}</h1>
+          <span className="font-mono text-sm break-all">{p.base_url.replace(/^https?:\/\//, '')}</span>
+          {p.is_demo && <p className="text-base">Our demo store with 9 planted bugs. Try both test types.</p>}
+          {!p.is_demo && <OwnShopNote url={p.base_url} />}
         </div>
-        <Button asChild size="lg" className="blueprint">
-          <Link to={`/app/projects/${p.id}/runs/new`}>
-            <Corners />
-            <Play aria-hidden /> New run
-          </Link>
+        <Button asChild size="lg">
+          <Link to={`/app/projects/${p.id}/runs/new`}>New run →</Link>
         </Button>
       </div>
 

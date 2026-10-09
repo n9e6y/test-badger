@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock, DollarSign, Globe, Layers, Loader2, ShoppingCart, UserPlus } from 'lucide-react'
+import { Layers, Loader2, ShoppingCart, UserPlus } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
@@ -6,10 +6,8 @@ import { toast } from 'sonner'
 
 import { type TestChoice, useMe, useProject, useStartTests } from '@/api/hooks'
 import type { RunMode, TestType } from '@/api/types'
-import { Corners } from '@/components/common/Corners'
 import { ErrorState, FullPageSpinner } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { allowedMode, estimate, estimateUsd, MODES, RESERVED_NOTE, RUNS_RESERVED_NOTE } from '@/lib/mode'
 import { cn } from '@/lib/utils'
@@ -56,18 +54,18 @@ function OptionCard({
       disabled={disabled}
       onClick={onSelect}
       className={cn(
-        'relative flex min-w-0 flex-col gap-2 border p-[18px] text-left disabled:cursor-not-allowed disabled:opacity-55',
-        checked ? 'border-primary bg-ink-100 shadow-[0_0_0_1px_var(--primary)]' : 'enabled:hover:bg-accent',
+        'relative flex min-w-0 flex-col gap-2.5 bg-background px-[18px] pt-[18px] pb-5 text-left disabled:cursor-not-allowed disabled:opacity-55',
+        checked ? 'border-2 border-foreground p-[17px] pb-[19px]' : 'border enabled:hover:bg-surface',
       )}
     >
       <span
         aria-hidden
         className={cn(
-          'absolute top-[18px] right-[18px] grid size-[22px] place-items-center border',
-          checked ? 'border-primary bg-primary text-primary-foreground' : 'border-border',
+          'absolute top-[18px] right-[18px] grid size-[22px] place-items-center border-2 border-foreground',
+          checked ? 'bg-foreground' : 'bg-background',
         )}
       >
-        {checked && <Check className="size-3.5" />}
+        <span className="size-2 bg-background" />
       </span>
       {children}
     </button>
@@ -123,34 +121,39 @@ export function NewRun() {
 
   return (
     <form onSubmit={submit} className="mx-auto flex w-full max-w-[860px] flex-col gap-7" noValidate>
-      <Button variant="ghost" asChild className="-ml-3.5 w-fit">
-        <Link to={`/app/projects/${projectId}`}>
-          <ArrowLeft aria-hidden /> {project.data.name}
-        </Link>
-      </Button>
-      <div>
-        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Globe className="size-4 shrink-0 stroke-[1.5]" aria-hidden />
-          <span className="break-all">{project.data.base_url}</span>
-        </p>
-        <h1 className="mt-1.5 text-[clamp(30px,3vw,40px)]">New run</h1>
+      <div className="flex flex-col gap-2.5">
+        <nav aria-label="Breadcrumb" className="flex flex-wrap gap-2 text-sm">
+          <Link to={`/app/projects/${projectId}`} className="font-semibold underline-offset-4 hover:underline">
+            {project.data.name}
+          </Link>
+          <span aria-hidden>/</span>
+          <span>New run</span>
+        </nav>
+        <h1 className="text-[clamp(40px,4vw,52px)] leading-[0.95]">New test run</h1>
+        <span className="font-mono text-sm break-all">{project.data.base_url.replace(/^https?:\/\//, '')}</span>
       </div>
 
       <section className="flex flex-col gap-3">
-        <h2 id="type-title" className="text-xl">1 · What should it test?</h2>
+        <h2 id="type-title" className="flex items-baseline gap-3">
+          <span className="font-heading text-lg font-semibold">1</span>
+          <span className="text-[28px] leading-none">What should it test?</span>
+        </h2>
         <div role="radiogroup" aria-labelledby="type-title" className="grid gap-4 sm:grid-cols-3">
           {TYPES.map(({ key, title, text, icon: Icon }) => (
             <OptionCard key={key} checked={type === key} onSelect={() => setType(key)}>
-              <Icon className="size-6 stroke-[1.5] text-ink-700" aria-hidden />
-              <span className="font-heading text-[22px] font-semibold">{title}</span>
-              <span className="text-sm text-pretty">{text}</span>
+              <Icon className="size-6 stroke-[1.75]" aria-hidden />
+              <span className="pr-8 font-heading text-[26px] leading-none font-semibold">{title}</span>
+              <span className="text-[15px] leading-normal text-pretty">{text}</span>
             </OptionCard>
           ))}
         </div>
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 id="mode-title" className="text-xl">2 · Mode</h2>
+        <h2 id="mode-title" className="flex items-baseline gap-3">
+          <span className="font-heading text-lg font-semibold">2</span>
+          <span className="text-[28px] leading-none">How thorough?</span>
+        </h2>
         <div role="radiogroup" aria-labelledby="mode-title" className="grid gap-4 sm:grid-cols-2">
           {(Object.keys(MODES) as RunMode[]).map((key) => {
             const est = estimate(key, types)
@@ -161,21 +164,13 @@ export function NewRun() {
                 onSelect={() => setMode(key)}
                 disabled={!(me.data?.modes ?? ['quick']).includes(key)}
               >
-                <span className="font-heading text-[22px] font-semibold">{MODES[key].label}</span>
-                <span className="text-sm text-pretty">{MODES[key].text}</span>
-                <span className="mt-0.5 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                  <span className="inline-flex items-center gap-1">
-                    <DollarSign className="size-4 stroke-[1.5]" aria-hidden />
-                    <strong className="font-semibold">{est.cost}</strong>
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Clock className="size-4 stroke-[1.5]" aria-hidden />
-                    {est.minutes}
-                  </span>
+                <span className="pr-8 font-heading text-[26px] leading-none font-semibold">{MODES[key].label}</span>
+                <span className="flex items-baseline gap-2.5">
+                  <span className="font-heading text-[30px] leading-none font-semibold">{est.cost}</span>
+                  <span className="text-[15px] font-semibold">{est.minutes}</span>
                 </span>
-                {!(me.data?.modes ?? ['quick']).includes(key) && (
-                  <span className="text-xs text-muted-foreground">{RESERVED_NOTE}</span>
-                )}
+                <span className="text-[15px] leading-normal text-pretty">{MODES[key].text}</span>
+                {!(me.data?.modes ?? ['quick']).includes(key) && <span className="text-[13px]">{RESERVED_NOTE}</span>}
               </OptionCard>
             )
           })}
@@ -183,11 +178,16 @@ export function NewRun() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-xl">3 · Details (all optional)</h2>
-        <div className="blueprint flex flex-col gap-4 p-5">
-          <Corners />
+        <h2 className="flex items-baseline gap-3">
+          <span className="font-heading text-lg font-semibold">3</span>
+          <span className="text-[28px] leading-none">Anything specific?</span>
+          <span className="font-sans text-sm font-normal">optional</span>
+        </h2>
+        <div className="flex flex-col gap-4">
           <div className="grid gap-1.5">
-            <Label htmlFor="goal">Goal or notes for the agent</Label>
+            <Label htmlFor="goal" className="text-[15px] font-semibold">
+              Goal or notes for the agent
+            </Label>
             <textarea
               id="goal"
               value={goal}
@@ -199,44 +199,59 @@ export function NewRun() {
                   ? 'e.g. Valid coupon is WELCOME10, expired coupon is SUMMER24'
                   : 'e.g. Passwords need at least 8 characters'
               }
-              className="min-h-[90px] border border-input bg-surface px-2.5 py-2 text-base placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-offset-0"
+              className="min-h-[96px] resize-y border border-foreground bg-background p-3 text-base leading-normal placeholder:text-muted-foreground"
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <Label htmlFor="test-email">Test account email</Label>
-              <Input id="test-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" />
+              <Label htmlFor="test-email" className="text-[15px] font-semibold">
+                Test account email
+              </Label>
+              <input
+                id="test-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="off"
+                className="h-12 border border-foreground bg-background px-3 text-base"
+              />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="test-password">Test account password</Label>
-              <Input
+              <Label htmlFor="test-password" className="text-[15px] font-semibold">
+                Test account password
+              </Label>
+              <input
                 id="test-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
+                className="h-12 border border-foreground bg-background px-3 text-base"
               />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[13px]">
             Only needed if your site requires a login. The password is stored encrypted and never shown to the AI.
           </p>
         </div>
       </section>
 
       {start.isError && (
-        <div role="alert" className="flex gap-2 border border-v-bug-bd bg-v-bug-bg px-3 py-2.5 text-sm">
-          <AlertCircle className="mt-0.5 size-4 shrink-0 text-v-bug" aria-hidden />
-          <span>{start.error.message}</span>
+        <div role="alert" className="flex gap-3 border-2 border-foreground p-3.5 text-sm">
+          <span aria-hidden className="grid size-6 shrink-0 place-items-center bg-foreground font-bold text-background">
+            !
+          </span>
+          <span className="self-center">{start.error.message}</span>
         </div>
       )}
-      <div className="blueprint flex flex-wrap items-center gap-x-6 gap-y-4 px-5 py-[18px]">
-        <Corners />
-        <p className="flex-[1_1_320px] text-sm text-pretty">
-          The agent first explores the site (about a minute) and proposes a plan. Nothing is tested until you approve
-          it. {MODES[mode].label} mode, {type === 'both' ? 'both tests' : 'this test'}: about {chosen.minutes.slice(1)}, AI cost {chosen.cost}.
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 border border-foreground bg-surface px-5 py-[18px]">
+        <p className="flex flex-[1_1_320px] flex-col gap-1 text-sm text-pretty">
+          <span className="font-heading text-2xl leading-none font-semibold">
+            {MODES[mode].label} · {TYPES.find((t) => t.key === type)?.title} · {chosen.cost} · {chosen.minutes}
+          </span>
+          <span>The agent first explores the site (about a minute) and proposes a plan. Nothing runs until you approve it.</span>
           {runsLeft !== undefined && (
-            <span className={cn('mt-1 block', outOfRuns && 'font-medium text-v-bug')}>
+            <span className={cn('block', outOfRuns && 'font-semibold text-v-bug')}>
               {me.data?.runs_per_day === 0
                 ? RUNS_RESERVED_NOTE
                 : outOfRuns
@@ -245,18 +260,20 @@ export function NewRun() {
             </span>
           )}
           {budgetLeft !== null && (
-            <span className={cn('mt-0.5 block', overBudget && 'font-medium text-v-bug')}>
+            <span className={cn('block', overBudget && 'font-semibold text-v-bug')}>
               {overBudget
                 ? `The AI budget for this demo is used up ($${budgetLeft.toFixed(2)} left). Please contact the test-badger team.`
                 : `AI budget left for this demo: $${budgetLeft.toFixed(2)}.`}
             </span>
           )}
         </p>
-        <Button type="submit" size="lg" className="blueprint" disabled={start.isPending || outOfRuns || overBudget}>
-          <Corners />
+        <Button
+          type="submit"
+          className="min-h-[52px] max-w-[320px] flex-auto px-6 text-[17px]"
+          disabled={start.isPending || outOfRuns || overBudget}
+        >
           {start.isPending && <Loader2 className="animate-spin" aria-hidden />}
-          Start planning · {chosen.cost}
-          <ArrowRight aria-hidden />
+          Build test plan →
         </Button>
       </div>
     </form>

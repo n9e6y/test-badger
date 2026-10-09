@@ -17,8 +17,8 @@ export function RunsTable({ runs, showSite = true, label }: { runs: RunSummary[]
       <table aria-label={label} className="hidden w-full border-collapse text-[15px] leading-snug md:table">
         <thead>
           <tr>
-            <th className={`${TH} pl-0 text-left`}>{showSite ? 'Site' : 'Run'}</th>
-            <th className={`${TH} text-left`}>Test</th>
+            <th className={`${TH} pl-0 text-left`}>{showSite ? 'Site' : 'Test'}</th>
+            {showSite && <th className={`${TH} text-left`}>Test</th>}
             <th className={`${TH} text-left`}>Mode</th>
             <th className={`${TH} text-left`}>Result</th>
             <th className={`${TH} text-right`}>Cost</th>
@@ -30,11 +30,11 @@ export function RunsTable({ runs, showSite = true, label }: { runs: RunSummary[]
             <tr key={r.id} className="relative hover:bg-surface">
               <td className={`${TD} pl-0 font-semibold`}>
                 <Link to={`/app/runs/${r.id}`} className="after:absolute after:inset-0">
-                  {showSite ? r.project_name : formatDate(r.created_at)}
+                  {showSite ? r.project_name : testLabel(r)}
                 </Link>
                 {r.parent_run_id && <span className="ml-2 border px-1.5 text-[11px] font-normal">Re-run</span>}
               </td>
-              <td className={TD}>{testLabel(r)}</td>
+              {showSite && <td className={TD}>{testLabel(r)}</td>}
               <td className={TD}>{MODES[r.mode].label}</td>
               <td className={TD}>
                 <RunResultBadge run={r} />

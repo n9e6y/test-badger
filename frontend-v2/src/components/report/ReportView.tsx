@@ -1,4 +1,4 @@
-import { CheckCircle2, Film, Loader2, Printer, RefreshCcw, RotateCcw } from 'lucide-react'
+import { CheckCircle2, Film, Loader2, Printer, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -6,10 +6,9 @@ import { toast } from 'sonner'
 import { useRerun, useStartRun } from '@/api/hooks'
 import type { Report, Run, ScenarioRow } from '@/api/types'
 import { TONE_ICON, ToneBadge, VerdictBadge } from '@/components/common/badges'
-import { Corners } from '@/components/common/Corners'
 import { VideoDialog } from '@/components/common/VideoDialog'
 import { Button } from '@/components/ui/button'
-import { formatCost, formatDate, formatDuration, TEST_TYPE_LABEL } from '@/lib/format'
+import { formatCost, formatDate, formatDuration } from '@/lib/format'
 import { MODES } from '@/lib/mode'
 import { cn } from '@/lib/utils'
 import { OVERALL_VERDICT, TONE_CLASSES, type VerdictTone } from '@/lib/verdict'
@@ -17,8 +16,6 @@ import { hasVideo } from '@/lib/video'
 
 import { ComparisonCard } from './ComparisonCard'
 import { FindingCard } from './FindingCard'
-
-const ROW_RULE = 'border-b border-[color-mix(in_srgb,var(--foreground)_9%,transparent)]'
 
 export function ReportView({ run, report }: { run: Run; report: Report }) {
   const start = useStartRun()
@@ -46,183 +43,161 @@ export function ReportView({ run, report }: { run: Run; report: Report }) {
       onError: (e) => toast.error(e.message),
     })
 
-  const counts: [VerdictTone, number, string][] = [
-    ['bug', report.counts.bug_found ?? 0, 'Bug found'],
-    ['pass', report.counts.passed ?? 0, 'Passed'],
-    ['blocked', report.counts.blocked ?? 0, 'Blocked'],
-    ['inc', report.counts.inconclusive ?? 0, 'Inconclusive'],
+  const counts: [VerdictTone, number][] = [
+    ['pass', report.counts.passed ?? 0],
+    ['bug', report.counts.bug_found ?? 0],
+    ['blocked', report.counts.blocked ?? 0],
+    ['inc', report.counts.inconclusive ?? 0],
   ]
-  const details: [string, string][] = [
-    ['Test', TEST_TYPE_LABEL[report.test_type] ?? report.test_type],
-    ['Mode', `${MODES[run.mode].label} (${run.mode === 'quick' ? 'lighter model' : 'strongest model'})`],
-    ['Site', report.site_url],
-    ['Started', formatDate(report.created_at)],
+  const TONE_LABEL: Record<VerdictTone, string> = { pass: 'Passed', bug: 'Bug found', blocked: 'Blocked', inc: 'Inconclusive' }
+  const stats: [string, string][] = [
+    ['Mode', MODES[run.mode].label],
     ['Duration', formatDuration(report.stats.duration_s)],
     ['AI cost', formatCost(report.stats.cost_usd)],
-    ['AI calls', String(report.stats.llm_calls)],
-    ['Tokens', `${report.stats.tokens_in.toLocaleString()} in / ${report.stats.tokens_out.toLocaleString()} out`],
-    ['Browser', 'Chromium (headless)'],
+    ['Model calls', String(report.stats.llm_calls)],
+    ['Scenarios', String(report.scenarios.length)],
   ]
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Verdict */}
-      <section role="status" className={cn('flex flex-wrap items-center gap-x-5 gap-y-3.5 border px-[22px] py-5', tone.bg, tone.bd)}>
-        <BigIcon className={cn('size-9 shrink-0 stroke-[1.5]', tone.fg)} aria-hidden />
-        <div className="min-w-0 flex-[1_1_280px]">
-          <p className={cn('font-heading text-[clamp(28px,2.6vw,36px)] leading-tight font-semibold', tone.fg)}>{overall.label}</p>
-          <p className="mt-1 text-base">{report.headline}</p>
-          {report.coverage_note && <p className="mt-0.5 text-sm">{report.coverage_note}</p>}
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-wrap justify-end gap-2 print:hidden">
+        <Button variant="outline" className="min-h-11" onClick={() => window.print()}>
+          <Printer aria-hidden /> Print
+        </Button>
+        <Button variant="outline" className="min-h-11" onClick={runAgain} disabled={start.isPending}>
+          <RotateCcw aria-hidden /> Fresh run
+        </Button>
+        {run.plan && (
+          <Button
+            className="min-h-11 px-[18px]"
+            onClick={rerunSame}
+            disabled={rerun.isPending}
+            title="Runs the same scenarios again, without new planning, to check your fixes"
+          >
+            {rerun.isPending && <Loader2 className="animate-spin" aria-hidden />}
+            Re-run same plan
+          </Button>
+        )}
+      </div>
+
+      {/* Overall verdict */}
+      <section role="status" aria-label="Overall verdict" className={cn('flex flex-col gap-[18px] border-2 p-5 lg:p-7', tone.bg, tone.bdStrong)}>
+        <div className="flex items-start gap-4">
+          <BigIcon className={cn('size-10 shrink-0 stroke-[2.25]', tone.fg)} aria-hidden />
+          <div className="flex flex-col gap-1.5">
+            <span className={cn('text-xs font-bold tracking-[0.14em] uppercase', tone.fg)}>{overall.label}</span>
+            <h2 className="text-[clamp(30px,3vw,44px)] leading-none font-bold">{report.headline}</h2>
+            {report.coverage_note && <p className="text-base leading-normal">{report.coverage_note}</p>}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {counts.map(([t, n, label]) => (
-            <span
-              key={t}
-              className={cn('inline-flex items-center gap-1.5 border bg-background py-1 pr-2.5 pl-2 text-[13px] font-medium', TONE_CLASSES[t].fg, TONE_CLASSES[t].bd)}
-            >
-              <strong className="font-bold">{n}</strong> {label}
+        <div className="flex flex-wrap gap-x-4 gap-y-2 border-t border-[color-mix(in_srgb,currentColor_25%,transparent)] pt-3.5">
+          {counts.map(([t, n]) => (
+            <span key={t} className="flex items-center gap-2">
+              <strong className="font-heading text-2xl font-semibold">{n}</strong>
+              <ToneBadge tone={t} label={TONE_LABEL[t]} />
             </span>
           ))}
         </div>
       </section>
 
+      <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,150px),1fr))] border-t border-b border-t-foreground">
+        {stats.map(([k, v]) => (
+          <div key={k} className="flex flex-col gap-0.5 py-3 pr-3">
+            <dt className="text-[11px] font-semibold tracking-[0.14em] uppercase">{k}</dt>
+            <dd className="font-heading text-2xl font-semibold">{v}</dd>
+          </div>
+        ))}
+      </dl>
+
       {run.comparison && <ComparisonCard comparison={run.comparison} />}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-2.5 print:hidden">
-        <nav aria-label="Report sections" className="flex flex-wrap gap-x-5 gap-y-1 text-[15px] text-ink-700">
-          <a href="#findings" className="hover:underline">Findings ({report.findings.length})</a>
-          {report.needs_review.length > 0 && (
-            <a href="#review" className="hover:underline">Needs review ({report.needs_review.length})</a>
-          )}
-          {couldNotCheck > 0 && <a href="#blocked" className="hover:underline">Couldn’t check ({couldNotCheck})</a>}
-          <a href="#scenarios" className="hover:underline">All scenarios ({report.scenarios.length})</a>
-          <a href="#details" className="hover:underline">Run details</a>
-        </nav>
-        <div className="flex flex-wrap gap-2.5">
-          {run.plan && (
-            <Button
-              className="blueprint"
-              onClick={rerunSame}
-              disabled={rerun.isPending}
-              title="Runs the same scenarios again, without new planning, to check your fixes"
-            >
-              <Corners />
-              {rerun.isPending ? <Loader2 className="animate-spin" aria-hidden /> : <RefreshCcw aria-hidden />}
-              Re-run same plan
-            </Button>
-          )}
-          <Button variant="outline" onClick={runAgain} disabled={start.isPending}>
-            <RotateCcw aria-hidden /> Fresh run
-          </Button>
-          <Button variant="outline" onClick={() => window.print()}>
-            <Printer aria-hidden /> Print / PDF
-          </Button>
-        </div>
-      </div>
+      <section id="findings" className="flex scroll-mt-20 flex-col gap-4">
+        <h2 className="text-[30px] leading-none">
+          Findings <span className="text-xl">· {report.findings.length}</span>
+        </h2>
+        {report.findings.length === 0 ? (
+          <div className="flex items-center gap-2.5 border border-dashed border-foreground p-[18px]">
+            <CheckCircle2 className="size-6 shrink-0 stroke-2 text-v-pass" aria-hidden />
+            <span>No confirmed bugs in the scenarios that could be completed.</span>
+          </div>
+        ) : (
+          report.findings.map((f) => <FindingCard key={f.id} finding={f} siteUrl={report.site_url} onWatch={watch(f.scenario_id)} />)
+        )}
+      </section>
 
-      <div className="flex flex-wrap items-start gap-8">
-        <div className="flex min-w-0 flex-[3_1_600px] flex-col gap-9">
-          <section id="findings" className="flex scroll-mt-20 flex-col gap-5">
-            <h2 className="text-[26px]">Findings</h2>
-            {report.findings.length === 0 ? (
-              <div className="flex items-center gap-2.5 border border-dashed p-[18px]">
-                <CheckCircle2 className="size-6 shrink-0 stroke-[1.5] text-v-pass" aria-hidden />
-                <span>No confirmed bugs in the scenarios that could be completed.</span>
-              </div>
-            ) : (
-              report.findings.map((f) => (
-                <FindingCard key={f.id} finding={f} siteUrl={report.site_url} onWatch={watch(f.scenario_id)} />
-              ))
-            )}
-          </section>
+      {report.needs_review.length > 0 && (
+        <section id="review" className="flex scroll-mt-20 flex-col gap-3">
+          <h2 className="text-[26px] leading-none">
+            Needs review <span className="text-lg">· {report.needs_review.length}</span>
+          </h2>
+          <p className="text-[15px]">Low confidence: not counted as bugs. Check them by hand before fixing.</p>
+          {report.needs_review.map((f) => (
+            <FindingCard key={f.id} finding={f} siteUrl={report.site_url} review onWatch={watch(f.scenario_id)} />
+          ))}
+        </section>
+      )}
 
-          {report.needs_review.length > 0 && (
-            <section id="review" className="flex scroll-mt-20 flex-col gap-3.5">
-              <h2 className="text-[26px]">Needs review</h2>
-              <p className="text-muted-foreground">The agent wasn’t fully sure about these. Take a look before fixing.</p>
-              {report.needs_review.map((f) => (
-                <FindingCard key={f.id} finding={f} siteUrl={report.site_url} review onWatch={watch(f.scenario_id)} />
-              ))}
-            </section>
-          )}
-
-          {couldNotCheck > 0 && (
-            <section id="blocked" className="flex scroll-mt-20 flex-col gap-3.5">
-              <h2 className="text-[26px]">What we couldn’t check</h2>
-              {report.blocked.map((b) => (
-                <div key={b.scenario_id} className="flex flex-col gap-2.5 border border-v-blocked-bd p-[18px]">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <ToneBadge tone="blocked" label="Blocked" />
-                    <strong className="font-semibold">{b.scenario_id === 'ENTRY' ? 'The site' : b.scenario_id}</strong>
-                  </div>
-                  <p className="text-sm text-pretty">{b.reason}</p>
-                  <p className="text-sm text-pretty">
-                    <span className="font-medium">How to unblock: </span>
-                    {b.how_to_unblock}
-                  </p>
-                </div>
-              ))}
-              {unsure.map((s) => (
-                <div key={s.id} className="flex flex-col gap-2.5 border border-v-inc-bd p-[18px]">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <ToneBadge tone="inc" label="Inconclusive" />
-                    <strong className="font-semibold">
-                      {s.id}. {s.title}
-                    </strong>
-                  </div>
-                  <p className="text-sm text-pretty">{s.reason}</p>
-                </div>
-              ))}
-            </section>
-          )}
-
-          <section id="scenarios" className="flex scroll-mt-20 flex-col gap-2.5">
-            <h2 className="text-[26px]">All scenarios</h2>
-            <div role="table" aria-label="All scenarios" className="flex flex-col">
-              {report.scenarios.map((s) => (
-                <div key={s.id} role="row" className={cn('flex flex-wrap items-center gap-x-3.5 gap-y-1.5 px-1.5 py-3 text-sm', ROW_RULE)}>
-                  <span role="cell" className="w-10 font-heading font-semibold text-ink-700">{s.id}</span>
-                  <span role="cell" className="min-w-0 flex-[1_1_260px]">
-                    {s.title}
-                    <span className="block text-xs text-muted-foreground">{s.reason}</span>
-                  </span>
-                  <span role="cell" className="w-32">
-                    <VerdictBadge verdict={s.verdict} />
-                  </span>
-                  <span role="cell" className="w-24 text-right text-xs text-muted-foreground tabular-nums">
-                    {s.steps_taken} steps · {formatDuration(s.duration_s)}
-                  </span>
-                  <span role="cell" className="w-20 text-right print:hidden">
-                    {watch(s.id) && (
-                      <Button variant="ghost" size="sm" onClick={watch(s.id)} aria-label={`Watch video of ${s.id}`}>
-                        <Film aria-hidden /> Watch
-                      </Button>
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <aside id="details" className="blueprint min-w-0 flex-[1_1_280px] scroll-mt-20">
-          <Corners />
-          <h2 className="border-b px-4 py-3 text-[19px]">Run details</h2>
-          <dl className="px-4 pt-1.5 pb-3">
-            {details.map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-3 border-b border-[color-mix(in_srgb,var(--foreground)_8%,transparent)] py-2 text-sm last:border-b-0">
-                <dt className="text-muted-foreground">{k}</dt>
-                <dd className="text-right font-medium [overflow-wrap:anywhere]">{v}</dd>
+      {couldNotCheck > 0 && (
+        <section id="blocked" className="flex scroll-mt-20 flex-col gap-3">
+          <h2 className="text-[26px] leading-none">
+            Couldn’t check <span className="text-lg">· {couldNotCheck}</span>
+          </h2>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,360px),1fr))] gap-4">
+            {report.blocked.map((b) => (
+              <div key={b.scenario_id} className="flex flex-col gap-2.5 border border-v-blocked p-4">
+                <ToneBadge tone="blocked" label="Blocked" />
+                <span className="text-base leading-snug font-semibold">{b.scenario_id === 'ENTRY' ? 'The site' : b.scenario_id}</span>
+                <span className="text-sm leading-normal">{b.reason}</span>
+                <span className="text-sm leading-normal">
+                  <strong className="font-semibold">Advice:</strong> {b.how_to_unblock}
+                </span>
               </div>
             ))}
-          </dl>
-          {report.stats.limits_hit.length > 0 && (
-            <p className="border-t px-4 py-3 text-[13px] text-muted-foreground">
-              Limits reached: {report.stats.limits_hit.join('; ')}
-            </p>
-          )}
-        </aside>
-      </div>
+            {unsure.map((s) => (
+              <div key={s.id} className="flex flex-col gap-2.5 border border-v-inc p-4">
+                <ToneBadge tone="inc" label="Inconclusive" />
+                <span className="text-base leading-snug font-semibold">
+                  {s.id} · {s.title}
+                </span>
+                <span className="text-sm leading-normal">{s.reason}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section id="scenarios" className="flex scroll-mt-20 flex-col gap-3">
+        <h2 className="text-[30px] leading-none">All scenarios</h2>
+        <ul aria-label="All scenarios" className="flex flex-col border-t border-foreground">
+          {report.scenarios.map((s) => (
+            <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b py-3">
+              <span className="flex min-w-0 flex-[1_1_280px] gap-2.5 text-[15px] leading-snug">
+                <span className="w-[30px] shrink-0 font-heading text-base font-semibold">{s.id}</span>
+                <span className="flex flex-col gap-0.5">
+                  <span className="font-semibold">{s.title}</span>
+                  <span className="text-[13px]">{s.reason}</span>
+                </span>
+              </span>
+              <span className="flex flex-none items-center gap-3.5 pl-10 sm:pl-0">
+                <span className="min-w-[88px] text-[13px] tabular-nums">
+                  {s.steps_taken} steps · {formatDuration(s.duration_s)}
+                </span>
+                <VerdictBadge verdict={s.verdict} />
+                {watch(s.id) && (
+                  <Button variant="ghost" size="sm" className="print:hidden" onClick={watch(s.id)} aria-label={`Watch video of ${s.id}`}>
+                    <Film aria-hidden /> Watch
+                  </Button>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {report.stats.limits_hit.length > 0 && <p className="text-[13px]">Limits reached: {report.stats.limits_hit.join('; ')}</p>}
+        <p className="text-[13px]">
+          {formatDate(report.created_at)} · {report.stats.tokens_in.toLocaleString()} tokens in / {report.stats.tokens_out.toLocaleString()} out ·
+          Chromium (headless)
+        </p>
+      </section>
 
       {video && <VideoDialog scenario={video} onClose={() => setVideo(null)} />}
     </div>
