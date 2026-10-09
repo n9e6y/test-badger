@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 from app.db import Base, get_session
 from app.main import app
 from app.services.demo import ensure_demo_project
+from app.services.ratelimit import reset_all
 
 
 class FakeQueue:
@@ -31,6 +32,7 @@ async def client() -> AsyncIterator[AsyncClient]:
     async with sessions() as session:
         await ensure_demo_project(session)
     app.state.queue = FakeQueue()
+    reset_all()
 
     async def override() -> AsyncIterator[AsyncSession]:
         async with sessions() as session:

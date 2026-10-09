@@ -13,10 +13,6 @@
 </p>
 
 <p align="center">
-  <img alt="9/9 planted bugs found" src="https://img.shields.io/badge/planted%20bugs%20found-9%2F9-1f6b3f?style=flat-square">
-  <img alt="0 false findings" src="https://img.shields.io/badge/false%20findings-0%20in%2013%20runs-1f6b3f?style=flat-square">
-  <img alt="AI cost per run" src="https://img.shields.io/badge/AI%20cost%20per%20run-%240.15%E2%80%930.43-0a0a0a?style=flat-square">
-  <br>
   <img alt="Python 3.12" src="https://img.shields.io/badge/Python-3.12-0a0a0a?style=flat-square&logo=python&logoColor=white">
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0a0a0a?style=flat-square&logo=fastapi&logoColor=white">
   <img alt="Playwright" src="https://img.shields.io/badge/Playwright-Chromium-0a0a0a?style=flat-square&logo=playwright&logoColor=white">
@@ -201,6 +197,7 @@ Agent tests use a fake LLM client, so the test suite never calls a real model.
 
 - Only test sites you own or are authorized to test. The agent stays on the site's own origins and refuses private or internal network addresses.
 - It never submits real payments: checkout stops at the payment step.
+- Log-in and sign-up are rate-limited per visitor, and test runs on the public demo are reserved for the judges' account, so nobody else can spend its AI budget.
 - Sites behind bot protection (CAPTCHA, WAF) are reported as *Blocked* with advice on how to allow the tester, not bypassed.
 - Browser-based testing only: no API, mobile app or CI testing in this version.
 

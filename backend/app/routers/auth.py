@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,9 +17,15 @@ from app.security import (
     verify_password,
 )
 from app.services.accounts import budget_left, policy_for, runs_today
+from app.services.ratelimit import failed_logins, signups
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 Session = Annotated[AsyncSession, Depends(get_session)]
+
+
+def client_ip(request: Request) -> str:
+    # uvicorn runs with --proxy-headers behind Caddy, so this is the visitor's address
+    return request.client.host if request.client else "unknown"
 
 
 async def user_out(session: AsyncSession, user: User) -> UserOut:
@@ -38,7 +44,12 @@ async def user_out(session: AsyncSession, user: User) -> UserOut:
 
 
 @router.post("/signup", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def signup(body: SignupIn, response: Response, session: Session) -> UserOut:
+async def signup(body: SignupIn, request: Request, response: Response, session: Session) -> UserOut:
+    ip = client_ip(request)
+    if signups.full(ip):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS, "Too many new accounts from here. Please try later."
+        )
     email = body.email.lower()
     existing = await session.scalar(select(User).where(User.email == email))
     if existing is not None:
@@ -46,14 +57,22 @@ async def signup(body: SignupIn, response: Response, session: Session) -> UserOu
     user = User(email=email, name=body.name.strip(), password_hash=hash_password(body.password))
     session.add(user)
     await session.commit()
+    signups.add(ip)
     set_session_cookie(response, user.id)
     return await user_out(session, user)
 
 
 @router.post("/login", response_model=UserOut)
-async def login(body: LoginIn, response: Response, session: Session) -> UserOut:
+async def login(body: LoginIn, request: Request, response: Response, session: Session) -> UserOut:
+    ip = client_ip(request)
+    if failed_logins.full(ip):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Too many failed log-in attempts. Please wait 15 minutes and try again.",
+        )
     user = await session.scalar(select(User).where(User.email == body.email.lower()))
     if user is None or not verify_password(user.password_hash, body.password):
+        failed_logins.add(ip)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Wrong email or password.")
     set_session_cookie(response, user.id)
     return await user_out(session, user)

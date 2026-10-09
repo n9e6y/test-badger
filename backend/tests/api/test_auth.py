@@ -54,3 +54,31 @@ async def test_login_logout_flow(client: AsyncClient) -> None:
 async def test_health(client: AsyncClient) -> None:
     r = await client.get("/api/health")
     assert r.json() == {"status": "ok"}
+
+
+async def test_failed_logins_are_rate_limited_per_ip(client: AsyncClient) -> None:
+    """Hardening before going public: 10 failed log-ins per IP per 15 minutes, then 429."""
+    await client.post("/api/auth/signup", json=SIGNUP)
+    await client.post("/api/auth/logout")
+    for _ in range(10):
+        r = await client.post(
+            "/api/auth/login", json={"email": SIGNUP["email"], "password": "wrong-password"}
+        )
+        assert r.status_code == 401
+    r = await client.post(
+        "/api/auth/login", json={"email": SIGNUP["email"], "password": SIGNUP["password"]}
+    )
+    assert r.status_code == 429 and "15 minutes" in r.json()["detail"]
+
+
+async def test_signups_are_rate_limited_per_ip(client: AsyncClient) -> None:
+    for i in range(10):
+        r = await client.post(
+            "/api/auth/signup",
+            json={"name": "N", "email": f"n{i}@example.com", "password": "Secret123!"},
+        )
+        assert r.status_code == 201
+    r = await client.post(
+        "/api/auth/signup", json={"name": "N", "email": "n10@example.com", "password": "Secret123!"}
+    )
+    assert r.status_code == 429
