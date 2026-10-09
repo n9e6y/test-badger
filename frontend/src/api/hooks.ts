@@ -147,6 +147,7 @@ export function useStartTests() {
       for (const run of runs) qc.setQueryData(['run', run.id], run)
       qc.invalidateQueries({ queryKey: ['runs'] })
       qc.invalidateQueries({ queryKey: ['project'] })
+      qc.invalidateQueries({ queryKey: ME_KEY }) // runs left today (D25)
     },
   })
 }
@@ -168,6 +169,7 @@ export function useRerun() {
     onSuccess: (run) => {
       qc.setQueryData(['run', run.id], run)
       qc.invalidateQueries({ queryKey: ['runs'] })
+      qc.invalidateQueries({ queryKey: ME_KEY })
       qc.invalidateQueries({ queryKey: ['project'] })
     },
   })

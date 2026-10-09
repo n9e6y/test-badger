@@ -159,7 +159,7 @@ async def test_cannot_approve_with_everything_off(client: AsyncClient) -> None:
 async def test_cancel_and_daily_limit(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
     from app.config import get_settings
 
-    monkeypatch.setattr(get_settings(), "runs_per_user_per_day", 2)
+    monkeypatch.setattr(get_settings(), "judge_runs_per_day", 2)
     await signup(client)
     run = await start(client)
     assert (await client.post(f"/api/runs/{run['id']}/cancel")).json()["status"] == "CANCELLED"
@@ -308,3 +308,129 @@ async def test_run_mode_is_stored_listed_and_kept_by_rerun(client: AsyncClient) 
         json={"test_type": "registration", "mode": "turbo"},
     )
     assert r.status_code == 422
+
+
+async def test_public_account_easy_only_with_its_own_limit(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """D25: anyone can sign up and run the flow, but only in Easy mode, with a small limit."""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "runs_per_user_per_day", 1)
+    r = await client.post(
+        "/api/auth/signup",
+        json={"name": "Pat", "email": "public@example.com", "password": "Secret123!"},
+    )
+    me = r.json()
+    assert me["is_judge"] is False and me["modes"] == ["quick"]
+    assert me["runs_per_day"] == 1 and me["runs_left_today"] == 1
+    hard = await client.post(
+        f"/api/projects/{await demo_id(client)}/runs", json={"test_type": "registration"}
+    )
+    assert hard.status_code == 403 and "Easy" in hard.json()["detail"]
+    assert (await start(client, mode="quick"))["mode"] == "quick"
+    assert (await client.get("/api/auth/me")).json()["runs_left_today"] == 0
+    r = await client.post(
+        f"/api/projects/{await demo_id(client)}/runs",
+        json={"test_type": "registration", "mode": "quick"},
+    )
+    assert r.status_code == 429
+
+
+async def test_judge_account_is_seeded_and_cannot_be_taken_over(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.config import get_settings
+    from app.db import get_session
+    from app.services.accounts import ensure_judge_account
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "judge_email", "judge@test-badger.example.com")
+    monkeypatch.setattr(settings, "judge_password", "configured-pass-1")
+    # someone signs up with the judge address before the API (re)starts
+    r = await client.post(
+        "/api/auth/signup",
+        json={"name": "Mallory", "email": "judge@test-badger.example.com", "password": "mallory-1"},
+    )
+    assert r.status_code == 201
+    client.cookies.clear()
+    async for session in app.dependency_overrides[get_session]():
+        await ensure_judge_account(session)
+    bad = await client.post(
+        "/api/auth/login",
+        json={"email": "judge@test-badger.example.com", "password": "mallory-1"},
+    )
+    assert bad.status_code == 401
+    ok = await client.post(
+        "/api/auth/login",
+        json={"email": "judge@test-badger.example.com", "password": "configured-pass-1"},
+    )
+    assert ok.status_code == 200
+    assert ok.json()["is_judge"] is True and ok.json()["modes"] == ["thorough", "quick"]
+
+
+async def _set_cost(run_id: str, cost: float, created_at: Any = None) -> None:
+    from app.db import get_session
+    from app.models import Run
+
+    async for session in app.dependency_overrides[get_session]():
+        run = await session.get(Run, run_id)
+        assert run is not None
+        run.cost_usd = cost
+        if created_at is not None:
+            run.created_at = created_at
+        await session.commit()
+
+
+async def test_all_public_accounts_share_one_budget(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """D26: every non-judge account spends from one pot; judge spend does not count."""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "public_budget_usd", 0.40)
+    await signup(client)  # a judge (see conftest)
+    judge_run = await start(client)
+    await _set_cost(judge_run["id"], 2.0)  # judge spending is a separate pot
+    client.cookies.clear()
+
+    r = await client.post(
+        "/api/auth/signup",
+        json={"name": "P1", "email": "p1@example.com", "password": "Secret123!"},
+    )
+    assert r.json()["budget_left_usd"] == 0.40
+    first = await start(client, mode="quick")
+    await _set_cost(first["id"], 0.30)
+    client.cookies.clear()
+
+    await client.post(
+        "/api/auth/signup",
+        json={"name": "P2", "email": "p2@example.com", "password": "Secret123!"},
+    )
+    me = (await client.get("/api/auth/me")).json()
+    assert me["budget_left_usd"] == 0.10  # p1's run used the shared money
+    r = await client.post(
+        f"/api/projects/{await demo_id(client)}/runs",
+        json={"test_type": "registration", "mode": "quick"},
+    )
+    assert r.status_code == 403 and "budget" in r.json()["detail"]
+
+
+async def test_budget_start_ignores_older_runs(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from datetime import UTC, datetime
+
+    from app.config import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "public_budget_usd", 0.50)
+    await client.post(
+        "/api/auth/signup",
+        json={"name": "Old", "email": "old@example.com", "password": "Secret123!"},
+    )
+    old = await start(client, mode="quick")
+    await _set_cost(old["id"], 0.50, created_at=datetime(2026, 1, 1, tzinfo=UTC))
+    assert (await client.get("/api/auth/me")).json()["budget_left_usd"] == 0.0
+    monkeypatch.setattr(settings, "budget_start", "2026-06-01T00:00:00+00:00")
+    assert (await client.get("/api/auth/me")).json()["budget_left_usd"] == 0.50

@@ -17,7 +17,7 @@ from agent.browser.snapshot import format_snapshot
 from agent.browser.tools import BrowserTools, describe_action
 from agent.context import RunContext
 from agent.llm.client import LLMClient, ToolDef
-from agent.llm.types import BudgetExceeded, LLMError
+from agent.llm.types import BudgetExceeded, LLMError, OutOfCredits
 from agent.models import Scenario, ScenarioResult, StepRecord
 from agent.planner import scenario_data_text
 from agent.prompts import load_prompt
@@ -243,6 +243,8 @@ async def execute_scenario(
         except BudgetExceeded:
             result.finished, result.notes = "budget", "LLM cost cap reached"
             break
+        except OutOfCredits:
+            raise  # D25: the key is empty — no later scenario can run either; end the run
         except LLMError as exc:
             result.finished, result.notes = "error", f"agent error: {exc}"
             break

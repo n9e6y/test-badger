@@ -4,14 +4,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { toast } from 'sonner'
 
-import { type TestChoice, useProject, useStartTests } from '@/api/hooks'
+import { type TestChoice, useMe, useProject, useStartTests } from '@/api/hooks'
 import type { RunMode, TestType } from '@/api/types'
 import { Corners } from '@/components/common/Corners'
 import { ErrorState, FullPageSpinner } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { estimate, MODES } from '@/lib/mode'
+import { allowedMode, estimate, estimateUsd, MODES, RESERVED_NOTE } from '@/lib/mode'
 import { cn } from '@/lib/utils'
 
 const TYPES: { key: TestChoice; title: string; text: string; icon: typeof UserPlus }[] = [
@@ -39,10 +39,12 @@ const TYPES: { key: TestChoice; title: string; text: string; icon: typeof UserPl
 function OptionCard({
   checked,
   onSelect,
+  disabled = false,
   children,
 }: {
   checked: boolean
   onSelect: () => void
+  disabled?: boolean
   children: React.ReactNode
 }) {
   return (
@@ -50,10 +52,12 @@ function OptionCard({
       type="button"
       role="radio"
       aria-checked={checked}
+      aria-disabled={disabled}
+      disabled={disabled}
       onClick={onSelect}
       className={cn(
-        'relative flex min-w-0 flex-col gap-2 border p-[18px] text-left',
-        checked ? 'border-primary bg-steel-100 shadow-[0_0_0_1px_var(--primary)]' : 'hover:bg-accent',
+        'relative flex min-w-0 flex-col gap-2 border p-[18px] text-left disabled:cursor-not-allowed disabled:opacity-55',
+        checked ? 'border-primary bg-steel-100 shadow-[0_0_0_1px_var(--primary)]' : 'enabled:hover:bg-accent',
       )}
     >
       <span
@@ -76,13 +80,20 @@ export function NewRun() {
   const start = useStartTests()
   const navigate = useNavigate()
   const [type, setType] = useState<TestChoice>('registration')
-  const [mode, setMode] = useState<RunMode>('thorough')
+  const me = useMe()
+  const [wantedMode, setMode] = useState<RunMode>('thorough')
+  const mode = allowedMode(wantedMode, me.data?.modes)
+  const runsLeft = me.data?.runs_left_today
+  const outOfRuns = runsLeft !== undefined && runsLeft < (type === 'both' ? 2 : 1)
   const [goal, setGoal] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const types: TestType[] = type === 'both' ? ['registration', 'store'] : [type]
   const chosen = estimate(mode, types)
+  const budgetLeft = me.data?.budget_left_usd ?? null
+  // The API checks each run on its own; for "Both" the first run alone must fit, but warn early.
+  const overBudget = budgetLeft !== null && budgetLeft < estimateUsd(mode, types.slice(0, 1))
 
   if (project.isPending) return <FullPageSpinner />
   if (project.isError) return <ErrorState message={project.error.message} onRetry={() => project.refetch()} />
@@ -144,7 +155,12 @@ export function NewRun() {
           {(Object.keys(MODES) as RunMode[]).map((key) => {
             const est = estimate(key, types)
             return (
-              <OptionCard key={key} checked={mode === key} onSelect={() => setMode(key)}>
+              <OptionCard
+                key={key}
+                checked={mode === key}
+                onSelect={() => setMode(key)}
+                disabled={!(me.data?.modes ?? ['quick']).includes(key)}
+              >
                 <span className="font-heading text-[22px] font-semibold">{MODES[key].label}</span>
                 <span className="text-sm text-pretty">{MODES[key].text}</span>
                 <span className="mt-0.5 flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -157,6 +173,9 @@ export function NewRun() {
                     {est.minutes}
                   </span>
                 </span>
+                {!(me.data?.modes ?? ['quick']).includes(key) && (
+                  <span className="text-xs text-muted-foreground">{RESERVED_NOTE}</span>
+                )}
               </OptionCard>
             )
           })}
@@ -216,8 +235,22 @@ export function NewRun() {
         <p className="flex-[1_1_320px] text-sm text-pretty">
           The agent first explores the site (about a minute) and proposes a plan. Nothing is tested until you approve
           it. {MODES[mode].label} mode, {type === 'both' ? 'both tests' : 'this test'}: about {chosen.minutes.slice(1)}, AI cost {chosen.cost}.
+          {runsLeft !== undefined && (
+            <span className={cn('mt-1 block', outOfRuns && 'font-medium text-v-bug')}>
+              {outOfRuns
+                ? `Not enough test runs left today (${runsLeft} of ${me.data?.runs_per_day}). Please come back tomorrow.`
+                : `${runsLeft} of ${me.data?.runs_per_day} test runs left today.`}
+            </span>
+          )}
+          {budgetLeft !== null && (
+            <span className={cn('mt-0.5 block', overBudget && 'font-medium text-v-bug')}>
+              {overBudget
+                ? `The AI budget for this demo is used up ($${budgetLeft.toFixed(2)} left). Please contact the test-badger team.`
+                : `AI budget left for this demo: $${budgetLeft.toFixed(2)}.`}
+            </span>
+          )}
         </p>
-        <Button type="submit" size="lg" className="blueprint" disabled={start.isPending}>
+        <Button type="submit" size="lg" className="blueprint" disabled={start.isPending || outOfRuns || overBudget}>
           <Corners />
           {start.isPending && <Loader2 className="animate-spin" aria-hidden />}
           Start planning · {chosen.cost}

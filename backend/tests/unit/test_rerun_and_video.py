@@ -114,3 +114,51 @@ def test_quick_mode_swaps_only_the_executor(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(settings, "llm_executor_quick", "")  # not configured -> fall back
     fallback = LLMClient(providers={}, mode="quick").roles
     assert fallback is not None and fallback["executor"] == "openai_compat:big"
+
+
+def test_public_runs_use_the_public_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """D25: non-judge runs call the model with the public key; empty public key = shared key."""
+    from agent.llm.client import build_providers
+    from app.config import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "openai_compat_api_key", "judge-key")
+    monkeypatch.setattr(settings, "openai_compat_api_key_public", "public-key")
+    judge = build_providers(settings)["openai_compat"]
+    public = build_providers(settings, public=True)["openai_compat"]
+    assert judge._client.api_key == "judge-key"  # type: ignore[attr-defined]
+    assert public._client.api_key == "public-key"  # type: ignore[attr-defined]
+    monkeypatch.setattr(settings, "openai_compat_api_key_public", "")
+    shared = build_providers(settings, public=True)["openai_compat"]
+    assert shared._client.api_key == "judge-key"  # type: ignore[attr-defined]
+
+
+def test_policy_for_judges_and_public(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.config import get_settings
+    from app.services.accounts import policy_for
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "judge_email", "Judge@Example.com")
+    monkeypatch.setattr(settings, "judge_emails", "bot@example.com")
+    monkeypatch.setattr(settings, "public_modes", "quick")
+    assert policy_for("judge@example.com").key_tier == "judge"
+    assert policy_for("BOT@example.com").modes == ("thorough", "quick")
+    pub = policy_for("someone@example.com")
+    assert pub.key_tier == "public" and pub.modes == ("quick",) and not pub.is_judge
+
+
+def test_empty_key_gives_a_clear_budget_message() -> None:
+    from agent.llm.types import LLMUnavailable, OutOfCredits
+    from agent.orchestrator import _user_message
+
+    assert "budget for this demo is used up" in _user_message(OutOfCredits("openai_compat 402"))
+    assert "budget" not in _user_message(LLMUnavailable("timeout"))
+
+
+def test_run_cost_cap_never_exceeds_the_tier_money_left() -> None:
+    from app.services.accounts import run_cost_cap
+
+    assert run_cost_cap(1.0, None, 0.0) == 1.0  # no budget configured
+    assert run_cost_cap(1.0, 0.20, 0.0) == 0.20  # tier has $0.20 left
+    assert run_cost_cap(1.0, 0.20, 0.05) == 0.25  # this run's planning already spent $0.05
+    assert run_cost_cap(0.10, 5.0, 0.0) == 0.10  # per-run cap still applies

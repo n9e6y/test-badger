@@ -62,5 +62,9 @@ class LLMOutputError(LLMError):
     """The model's output did not validate, even after one retry."""
 
 
+class OutOfCredits(LLMUnavailable):
+    """The provider account or API key has no budget left (D25). Ends the whole run."""
+
+
 class BudgetExceeded(LLMError):
     """The run's LLM cost cap was reached."""

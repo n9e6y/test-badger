@@ -111,7 +111,8 @@ def parse_role(value: str) -> tuple[str, str]:
     return provider, model
 
 
-def build_providers(settings: Settings) -> dict[str, Provider]:
+def build_providers(settings: Settings, *, public: bool = False) -> dict[str, Provider]:
+    """`public` (D25): non-judge accounts use the public key when one is configured."""
     from agent.llm.providers.anthropic import AnthropicProvider
     from agent.llm.providers.openai_chat import OpenAIChatProvider
 
@@ -124,9 +125,14 @@ def build_providers(settings: Settings) -> dict[str, Provider]:
         from agent.llm.providers.sim import SimProvider
 
         providers["sim"] = SimProvider()  # dev-only rule-based stand-in, never in prod
-    if settings.openai_compat_api_key:
+    compat_key = (
+        settings.openai_compat_api_key_public
+        if public and settings.openai_compat_api_key_public
+        else settings.openai_compat_api_key
+    )
+    if compat_key:
         providers["openai_compat"] = OpenAIChatProvider(
-            "openai_compat", settings.openai_compat_api_key, settings.openai_compat_base_url
+            "openai_compat", compat_key, settings.openai_compat_base_url
         )
     return providers
 
@@ -140,11 +146,12 @@ class LLMClient:
     cost_cap_usd: float | None = None
     totals: Totals = field(default_factory=Totals)
     mode: str = "thorough"  # D17: "quick" swaps in the cheaper executor model
+    key_tier: str = "judge"  # D25: "public" runs use the public API key
 
     def __post_init__(self) -> None:
         settings = get_settings()
         if self.providers is None:
-            self.providers = build_providers(settings)
+            self.providers = build_providers(settings, public=self.key_tier == "public")
         if self.roles is None:
             self.roles = {
                 "recon": settings.llm_planner,

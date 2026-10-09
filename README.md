@@ -39,7 +39,7 @@ The agent prefers *Inconclusive* over a weak *Bug found*. Across all runs, every
 2. On the dashboard, start a test on the **Demo shop** (Registration, Store, or both), or click **Test your own site** and add a URL you are allowed to test.
 3. Approve the plan, watch the run, read the report. Past runs are listed under *Recent runs* and on each site's history page.
 
-Each account can start a limited number of runs per day. A test costs real AI credit.
+Each account can start a limited number of runs per day, because every test costs real AI credit. On the public demo, new accounts use **Easy** mode; **Hard** mode is enabled for the judges' account (configurable, see `JUDGE_EMAIL` / `PUBLIC_MODES`).
 
 ---
 

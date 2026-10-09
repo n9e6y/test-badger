@@ -11,7 +11,7 @@ import { RunsTable } from '@/components/common/RunsTable'
 import { EmptyState, ErrorState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { formatCost, formatDate, TEST_TYPE_LABEL } from '@/lib/format'
-import { MODES } from '@/lib/mode'
+import { allowedMode, MODES, RESERVED_NOTE } from '@/lib/mode'
 import { cn } from '@/lib/utils'
 
 export function Dashboard() {
@@ -25,7 +25,9 @@ export function Dashboard() {
   const firstName = me.data?.name.split(' ')[0]
   const lastDemo = demo ? runs.data?.find((r) => r.project_id === demo.id) : undefined
 
-  const [mode, setMode] = useState<RunMode>('thorough')
+  const [wantedMode, setMode] = useState<RunMode>('thorough')
+  const mode = allowedMode(wantedMode, me.data?.modes)
+  const canUse = (m: RunMode) => (me.data?.modes ?? ['quick']).includes(m)
   const startDemo = (choice: TestChoice) => {
     if (!demo) return
     startRun.mutate(
@@ -79,11 +81,12 @@ export function Dashboard() {
                 type="button"
                 role="radio"
                 aria-checked={mode === key}
+                disabled={!canUse(key)}
                 onClick={() => setMode(key)}
-                title={MODES[key].text}
+                title={canUse(key) ? MODES[key].text : RESERVED_NOTE}
                 className={cn(
-                  'min-h-9 px-3.5 text-sm [&+&]:border-l',
-                  mode === key ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
+                  'min-h-9 px-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-50 [&+&]:border-l',
+                  mode === key ? 'bg-primary text-primary-foreground' : 'enabled:hover:bg-accent',
                 )}
               >
                 {MODES[key].label}
@@ -93,6 +96,13 @@ export function Dashboard() {
               </button>
             ))}
           </div>
+          {me.data && (
+            <p className="text-xs text-muted-foreground">
+              {!canUse('thorough') && `${RESERVED_NOTE} `}
+              {me.data.runs_left_today} of {me.data.runs_per_day} test runs left today.
+              {me.data.budget_left_usd !== null && ` AI budget left: $${me.data.budget_left_usd.toFixed(2)}.`}
+            </p>
+          )}
           <div className="mt-1.5 flex flex-wrap gap-2.5">
             <Button variant="outline" onClick={() => startDemo('registration')} disabled={!demo || startRun.isPending}>
               {pending('registration') ? <Loader2 className="animate-spin" aria-hidden /> : <UserPlus aria-hidden />}

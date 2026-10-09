@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.browser.tools import describe_action
 from agent.orchestrator import public_site_url, to_public_url
 from agent.templates.test_data import refresh_plan_data
-from app.config import get_settings
 from app.db import get_session
 from app.events import open_subscription, sse_stream
 from app.models import Project, Run, Scenario, Step, User
@@ -30,6 +29,7 @@ from app.schemas.runs import (
     StepOut,
 )
 from app.security import CurrentUser, encrypt_secret
+from app.services.accounts import budget_left, policy_for, run_estimate, runs_today
 from app.services.compare import compare_reports
 from app.services.runs import ACTIVE, STATUS_MESSAGES, TERMINAL, set_status
 
@@ -82,17 +82,27 @@ async def comparison_for(session: AsyncSession, run: Run) -> Comparison | None:
     )
 
 
-async def check_daily_limit(session: AsyncSession, user: User) -> None:
-    settings = get_settings()
-    since = datetime.now(UTC) - timedelta(days=1)
-    today = await session.scalar(
-        select(func.count()).select_from(Run).where(Run.user_id == user.id, Run.created_at >= since)
-    )
-    if (today or 0) >= settings.runs_per_user_per_day:
+async def check_run_allowed(session: AsyncSession, user: User, mode: str, test_type: str) -> None:
+    """D25: the account's allowed modes and daily run limit; D26: the tier's money left."""
+    policy = policy_for(user.email)
+    if mode not in policy.modes:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Hard mode is only available to the judge account. Please choose Easy mode.",
+        )
+    if await runs_today(session, user.id) >= policy.runs_per_day:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
-            f"You've reached today's limit of {settings.runs_per_user_per_day} test runs. "
+            f"You've reached today's limit of {policy.runs_per_day} test runs. "
             f"Please try again tomorrow.",
+        )
+    left = await budget_left(session, policy.key_tier)
+    if left is not None and left < run_estimate(mode, test_type):
+        who = "the judge account" if policy.is_judge else "new accounts on this demo"
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            f"The AI testing budget for {who} is used up (${left:.2f} left, this test needs "
+            f"about ${run_estimate(mode, test_type):.2f}). Please contact the test-badger team.",
         )
 
 
@@ -103,7 +113,7 @@ async def start_run(
     project_id: str, body: RunIn, user: CurrentUser, session: Session, queue: Queue
 ) -> RunOut:
     project = await visible_project(session, project_id, user.id)
-    await check_daily_limit(session, user)
+    await check_run_allowed(session, user, body.mode, body.test_type)
     creds = None
     if body.test_email or body.test_password:
         creds = encrypt_secret(
@@ -132,7 +142,7 @@ async def rerun(run_id: str, user: CurrentUser, session: Session, queue: Queue) 
             status.HTTP_409_CONFLICT,
             "Only a finished run with a test plan can be re-run. Start a new run instead.",
         )
-    await check_daily_limit(session, user)
+    await check_run_allowed(session, user, parent.mode, parent.test_type)
     child_id = new_id()
     plan = refresh_plan_data(parent.plan_json, parent.id, child_id)
     run = Run(

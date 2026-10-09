@@ -15,6 +15,7 @@ from agent.llm.types import (
     LLMRequest,
     LLMResponse,
     LLMUnavailable,
+    OutOfCredits,
     ToolCall,
 )
 
@@ -84,10 +85,10 @@ class AnthropicProvider:
         except (anthropic.RateLimitError, anthropic.APIConnectionError) as exc:
             raise LLMUnavailable(f"Anthropic unavailable: {exc}") from exc
         except anthropic.APIStatusError as exc:
+            if exc.status_code == 402:
+                raise OutOfCredits("Anthropic account is out of credits (402)") from exc
             if exc.status_code in (401, 403):
                 raise LLMUnavailable(f"Anthropic rejected the API key ({exc.status_code})") from exc
-            if exc.status_code == 402:
-                raise LLMUnavailable("Anthropic account is out of credits (402)") from exc
             if exc.status_code >= 500:
                 raise LLMUnavailable(f"Anthropic server error {exc.status_code}") from exc
             raise LLMError(f"Anthropic rejected the request ({exc.status_code})") from exc

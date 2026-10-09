@@ -23,7 +23,7 @@ from agent.reporter import blocked_report
 from app.config import get_settings
 from app.db import SessionLocal
 from app.events import publish
-from app.models import Artifact, Finding, LLMCall, Project, Run, Scenario, Step
+from app.models import Artifact, Finding, LLMCall, Project, Run, Scenario, Step, User
 from app.security import decrypt_secret
 from app.services.runs import set_status
 
@@ -233,8 +233,17 @@ async def _load(run_id: str) -> tuple[Run, Project]:
         return run, project
 
 
-def _llm(run: Run) -> LLMClient:
-    llm = LLMClient(run_id=run.id, recorder=_record_llm_call, mode=run.mode)
+async def _llm(run: Run) -> LLMClient:
+    """D25: judge accounts use the judge key, everyone else the public key.
+    D26: the run's cost cap never exceeds what the owner's tier has left."""
+    from app.services.accounts import budget_left, policy_for, run_cost_cap
+
+    async with SessionLocal() as s:
+        email = await s.scalar(select(User.email).where(User.id == run.user_id))
+        tier = policy_for(email or "").key_tier
+        left = await budget_left(s, tier)
+    llm = LLMClient(run_id=run.id, recorder=_record_llm_call, mode=run.mode, key_tier=tier)
+    llm.cost_cap_usd = run_cost_cap(get_settings().run_cost_cap_usd, left, run.cost_usd)
     llm.totals.cost_usd = run.cost_usd  # the plan phase counts toward the run's cost cap
     return llm
 
@@ -264,7 +273,7 @@ async def plan_run(run_id: str) -> None:
         run, project = await _load(run_id)
         if run.status == "CANCELLED":
             return
-        llm = _llm(run)
+        llm = await _llm(run)
         ctx = DbRunContext(run_id)
         outcome = await plan_phase(
             ctx=ctx,
@@ -323,7 +332,7 @@ async def execute_run(run_id: str) -> None:
             assert row is not None
             await set_status(s, row, "RUNNING")
         ctx = DbRunContext(run_id)
-        llm = _llm(run)
+        llm = await _llm(run)
         report = await execute_phase(
             ctx=ctx,
             llm=llm,
@@ -367,8 +376,15 @@ async def execute_run(run_id: str) -> None:
 
 
 def _user_message(exc: Exception) -> str:
-    from agent.llm.types import LLMError
+    from agent.llm.types import BudgetExceeded, LLMError, OutOfCredits
 
+    if isinstance(exc, BudgetExceeded):
+        return "This run reached its AI cost limit (the demo's AI budget is almost used up)."
+    if isinstance(exc, OutOfCredits):
+        return (
+            "The AI testing budget for this demo is used up, so this run had to stop. "
+            "Please try again later or contact the test-badger team."
+        )
     if isinstance(exc, LLMError):
         return f"The AI model could not complete this run: {exc}"
     return "Something went wrong while testing. Your results so far were saved; please try again."

@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from app.db import SessionLocal
 from app.queue import ArqQueue
 from app.routers import artifacts, auth, health, projects, runs
+from app.services.accounts import ensure_judge_account
 from app.services.demo import ensure_demo_project
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.queue = queue
     async with SessionLocal() as session:
         await ensure_demo_project(session)
+        await ensure_judge_account(session)
     yield
     await queue.close()
 

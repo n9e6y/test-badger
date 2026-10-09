@@ -31,7 +31,9 @@ class Settings(BaseSettings):
     llm_executor_quick: str = ""
     anthropic_api_key: str = ""
     openai_api_key: str = ""
-    openai_compat_api_key: str = ""
+    openai_compat_api_key: str = ""  # D25: the judge key (judge + JUDGE_EMAILS accounts)
+    # D25: key for every other account. Empty = everyone uses openai_compat_api_key.
+    openai_compat_api_key_public: str = ""
     openai_compat_base_url: str = "https://openrouter.ai/api/v1"
     llm_price_overrides: str = "{}"
 
@@ -51,7 +53,18 @@ class Settings(BaseSettings):
     max_steps_per_scenario: int = 25
     run_wall_clock_s: int = 720
     run_cost_cap_usd: float = 1.00
-    runs_per_user_per_day: int = 10
+    runs_per_user_per_day: int = 10  # D25: limit for public (non-judge) accounts
+
+    # D25: judge account and rights. Credentials live only in the server .env.
+    judge_email: str = ""  # seeded on API start; password re-set on every start
+    judge_password: str = ""
+    judge_emails: str = ""  # comma-separated extra accounts with judge rights (e.g. eval bots)
+    judge_runs_per_day: int = 10
+    public_modes: str = "quick"  # comma-separated run modes public accounts may use
+    # D26: AI budget per audience in USD (0 = no limit), counted from budget_start (ISO date).
+    public_budget_usd: float = 0.50  # shared by every non-judge account
+    judge_budget_usd: float = 3.00  # judge account + judge_emails
+    budget_start: str = ""
     max_concurrent_runs: int = 2
 
 

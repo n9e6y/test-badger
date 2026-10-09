@@ -4,6 +4,13 @@ export interface User {
   id: string
   email: string
   name: string
+  /** D25: what this account may do. */
+  is_judge: boolean
+  modes: RunMode[]
+  runs_per_day: number
+  runs_left_today: number
+  /** D26: AI money left for this account's group (null = no limit). */
+  budget_left_usd: number | null
 }
 
 export interface SignupInput {

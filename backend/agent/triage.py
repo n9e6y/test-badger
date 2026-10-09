@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 from agent.llm.client import LLMClient
-from agent.llm.types import BudgetExceeded, LLMError
+from agent.llm.types import BudgetExceeded, LLMError, OutOfCredits
 from agent.models import (
     BlockedItem,
     Confidence,
@@ -153,6 +153,8 @@ async def triage_scenario(
         )
     except BudgetExceeded:
         return Triaged(scenario, result, "INCONCLUSIVE", "low", "Not verified: cost cap reached")
+    except OutOfCredits:
+        raise  # D25: empty key ends the run with a clear message
     except LLMError as exc:
         logger.warning("verifier failed for %s: %s", scenario.id, exc)
         return Triaged(scenario, result, "INCONCLUSIVE", "low", "Not verified: verifier error")

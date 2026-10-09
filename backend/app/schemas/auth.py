@@ -20,3 +20,9 @@ class UserOut(BaseModel):
     id: str
     email: str
     name: str
+    # D25: what this account may do (filled by the auth routes)
+    is_judge: bool = False
+    modes: list[str] = ["quick"]
+    runs_per_day: int = 0
+    runs_left_today: int = 0
+    budget_left_usd: float | None = None  # D26: the tier's AI money left (None = no limit)

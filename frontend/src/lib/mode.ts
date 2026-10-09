@@ -21,9 +21,21 @@ export const MODES: Record<
 }
 
 /** Rough cost and time for one test type, or both. */
+export function estimateUsd(mode: RunMode, types: TestType[]): number {
+  return types.reduce((sum, t) => sum + MODES[mode].cost[t], 0)
+}
+
 export function estimate(mode: RunMode, types: TestType[]): { cost: string; minutes: string } {
   const m = MODES[mode]
   const cost = types.reduce((sum, t) => sum + m.cost[t], 0)
   const minutes = types.reduce((sum, t) => sum + m.minutes[t], 0)
   return { cost: `~$${cost.toFixed(2)}`, minutes: `~${Math.round(minutes)} min` }
 }
+
+/** D25: the mode to use — the chosen one if this account may use it, else its first allowed. */
+export function allowedMode(wanted: RunMode, allowed: RunMode[] | undefined): RunMode {
+  const list = allowed?.length ? allowed : (['quick'] as RunMode[])
+  return list.includes(wanted) ? wanted : list[0]
+}
+
+export const RESERVED_NOTE = 'Hard mode is reserved for the judge account in this demo.'

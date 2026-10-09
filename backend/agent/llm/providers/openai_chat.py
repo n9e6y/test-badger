@@ -17,6 +17,7 @@ from agent.llm.types import (
     LLMRequest,
     LLMResponse,
     LLMUnavailable,
+    OutOfCredits,
     ToolCall,
 )
 
@@ -88,11 +89,12 @@ class OpenAIChatProvider:
         except (openai.RateLimitError, openai.APIConnectionError) as exc:
             raise LLMUnavailable(f"{self.name} unavailable: {exc}") from exc
         except openai.APIStatusError as exc:
+            if exc.status_code == 402 or (exc.status_code == 403 and "limit" in str(exc).lower()):
+                # 402 = account out of credits; 403 "Key limit exceeded" = this key's cap (D25)
+                raise OutOfCredits(f"{self.name} key is out of budget ({exc.status_code})") from exc
             if exc.status_code in (401, 403):
                 msg = f"{self.name} rejected the API key ({exc.status_code})"
                 raise LLMUnavailable(msg) from exc
-            if exc.status_code == 402:
-                raise LLMUnavailable(f"{self.name} account is out of credits (402)") from exc
             if exc.status_code >= 500 or (exc.status_code == 404 and "No endpoints" in str(exc)):
                 # 404 "No endpoints found" = every upstream that supports our params is down.
                 raise LLMUnavailable(f"{self.name} unavailable ({exc.status_code})") from exc
