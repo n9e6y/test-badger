@@ -91,6 +91,23 @@ async def test_project_rejects_private_addresses(client: AsyncClient, url: str) 
     assert r.status_code == 400 and "private" in r.json()["detail"]
 
 
+def test_own_demo_shop_is_the_only_private_exemption(monkeypatch: pytest.MonkeyPatch) -> None:
+    """D36: a user's project pointing at our demo shop may use its private address, nothing else."""
+    from agent.orchestrator import own_shop_origins, target_for
+    from app.config import get_settings
+    from app.models import Project
+
+    monkeypatch.setattr(get_settings(), "demo_shop_url", "http://shop:8100")
+    monkeypatch.setattr(get_settings(), "demo_shop_public_url", "https://shop.example.test")
+    assert own_shop_origins() == {"http://shop:8100", "https://shop.example.test"}
+    shop = Project(
+        base_url="https://shop.example.test", allowed_origins=["https://shop.example.test"]
+    )
+    assert target_for(shop).exempt_origins == ["https://shop.example.test"]
+    other = Project(base_url="https://intranet.local", allowed_origins=["https://intranet.local"])
+    assert target_for(other).exempt_origins == []
+
+
 async def test_project_requires_authorization_checkbox(client: AsyncClient) -> None:
     await signup(client)
     r = await client.post(

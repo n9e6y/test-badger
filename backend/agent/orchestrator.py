@@ -16,6 +16,7 @@ from typing import Any
 
 from sqlalchemy import select
 
+from agent.browser.guards import origin_of
 from agent.llm.client import LLMCallRecord, LLMClient
 from agent.models import ScenarioResult, StepRecord, TestPlan
 from agent.pipeline import Target, execute_phase, plan_phase
@@ -195,14 +196,24 @@ async def _record_llm_call(rec: LLMCallRecord) -> None:
             )
 
 
+def own_shop_origins() -> set[str]:
+    """Origins of our own demo shop. Inside our server its hostname resolves to a private
+    Docker address, so the private-network guard must let exactly these through (D36)."""
+    settings = get_settings()
+    urls = [settings.demo_shop_url, settings.demo_shop_public_url or settings.demo_shop_url]
+    return {origin_of(u) for u in urls if u}
+
+
 def target_for(project: Project) -> Target:
     if project.is_demo:
         url = get_settings().demo_shop_url.rstrip("/")
         return Target(base_url=url, allowed_origins=[url], exempt_origins=[url])
+    own = own_shop_origins()
     return Target(
         base_url=project.base_url.rstrip("/"),
         allowed_origins=project.allowed_origins,
-        exempt_origins=[],
+        # a user's own project pointing at our demo shop (D36); never any other private address
+        exempt_origins=[o for o in project.allowed_origins if origin_of(o) in own],
     )
 
 

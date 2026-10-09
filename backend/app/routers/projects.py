@@ -9,7 +9,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.browser.guards import GuardError, NetworkGuard, derive_allowed_origins, origin_of
-from agent.orchestrator import public_site_url
+from agent.orchestrator import own_shop_origins, public_site_url
 from app.config import get_settings
 from app.db import get_session
 from app.models import Finding, Project, Run
@@ -95,7 +95,8 @@ async def list_projects(user: CurrentUser, session: Session) -> list[ProjectOut]
 
 async def _check_reachable(url: str) -> None:
     try:
-        await NetworkGuard(exempt_origins=[]).check(url)
+        # our own demo shop resolves to a private address inside the server (D36)
+        await NetworkGuard(exempt_origins=sorted(own_shop_origins())).check(url)
     except GuardError as exc:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,

@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { useCreateProject } from '@/api/hooks'
 import { Corners } from '@/components/common/Corners'
+import { OwnShopNote } from '@/components/common/OwnShopNote'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -101,6 +102,7 @@ export function NewProject() {
               {origins.length > 0 ? <>The agent will only visit: {origins.join(', ')}</> : 'The agent never leaves this site.'}
             </p>
           )}
+          <OwnShopNote url={url} />
         </div>
         <div className="grid gap-1.5">
           <label className="flex cursor-pointer items-start gap-2.5 border px-3.5 py-3">

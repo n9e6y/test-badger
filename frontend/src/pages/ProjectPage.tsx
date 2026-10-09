@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { useProject } from '@/api/hooks'
 import { Corners } from '@/components/common/Corners'
+import { OwnShopNote } from '@/components/common/OwnShopNote'
 import { RunsTable } from '@/components/common/RunsTable'
 import { EmptyState, ErrorState, FullPageSpinner } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,7 @@ export function ProjectPage() {
           {p.is_demo && (
             <p className="mt-1 text-muted-foreground">Our demo store with 9 planted bugs. Try both test types.</p>
           )}
+          {!p.is_demo && <OwnShopNote url={p.base_url} className="mt-1.5" />}
         </div>
         <Button asChild size="lg" className="blueprint">
           <Link to={`/app/projects/${p.id}/runs/new`}>
