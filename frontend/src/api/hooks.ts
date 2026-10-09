@@ -124,17 +124,28 @@ export type TestChoice = TestType | 'both'
 /**
  * Starts the chosen test. "both" starts a Registration run and a Store run with the same
  * details; each gets its own plan and report. Resolves to the started runs (first one first)
- * and, if a later run could not start, the reason.
+ * and, if a later run could not start, the reason. `storeGoal` is added to the Store run only.
  */
 export function useStartTests() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ projectId, choice, input }: { projectId: string; choice: TestChoice; input: Omit<StartRunInput, 'test_type'> }) => {
+    mutationFn: async ({
+      projectId,
+      choice,
+      input,
+      storeGoal,
+    }: {
+      projectId: string
+      choice: TestChoice
+      input: Omit<StartRunInput, 'test_type'>
+      storeGoal?: string
+    }) => {
       const types: TestType[] = choice === 'both' ? ['registration', 'store'] : [choice]
       const runs: Run[] = []
       for (const test_type of types) {
         try {
-          runs.push(await post<Run>(`/projects/${projectId}/runs`, { ...input, test_type }))
+          const goal = test_type === 'store' && storeGoal ? { goal_text: storeGoal } : {}
+          runs.push(await post<Run>(`/projects/${projectId}/runs`, { ...input, ...goal, test_type }))
         } catch (err) {
           // The first run failing is a normal error; a later one must not hide the runs already started.
           if (runs.length === 0) throw err

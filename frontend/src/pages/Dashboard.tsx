@@ -14,6 +14,9 @@ import { formatCost, formatDate, TEST_TYPE_LABEL } from '@/lib/format'
 import { allowedMode, MODES, RESERVED_NOTE } from '@/lib/mode'
 import { cn } from '@/lib/utils'
 
+/** What an owner would tell a tester about the demo shop; the 9/9 evaluation used exactly this (09 §1). */
+const DEMO_STORE_GOAL = 'Valid coupon is WELCOME10, expired coupon is SUMMER24'
+
 export function Dashboard() {
   const me = useMe()
   const projects = useProjects()
@@ -31,7 +34,7 @@ export function Dashboard() {
   const startDemo = (choice: TestChoice) => {
     if (!demo) return
     startRun.mutate(
-      { projectId: demo.id, choice, input: { mode } },
+      { projectId: demo.id, choice, input: { mode }, storeGoal: DEMO_STORE_GOAL },
       {
         onSuccess: ({ runs, notStarted }) => {
           if (notStarted) toast.error(`The Store run was not started: ${notStarted}`)

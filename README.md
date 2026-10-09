@@ -33,6 +33,15 @@ Our demo shop has 9 deliberately planted bugs in signup, cart and checkout (for 
 
 The agent prefers *Inconclusive* over a weak *Bug found*. Across all runs, every miss surfaced as Inconclusive with a reason, never as a false Passed.
 
+## For judges
+
+Log in on the live site with the judge account from our submission (or sign up with any email; new accounts get Easy mode). Then test any site you like:
+
+- **Your own choice of site:** click **Test your own site**, add the URL, pick a test type and a mode, approve the plan and watch it run. If a checkout needs a login, give a test account in the run form. Sites behind CAPTCHA or bot protection are reported as *Blocked*, not bypassed. Where the agent cannot finish a check, it marks it *Inconclusive* and says why, instead of guessing.
+- **Optional: our demo shop.** If you want a site where the right answers are known, the first card on the dashboard runs a test on our demo shop (Registration ~3 min, Store ~5 min). Its 9 planted bugs, which scenario finds each one, and the popups that must *not* be reported are listed in [docs/demo-shop-answer-key.md](docs/demo-shop-answer-key.md), so you can check the report yourself. The demo card tells the agent the shop's coupon codes, as an owner would tell a human tester.
+
+On any report, **Watch video** on a scenario shows exactly what the agent did.
+
 ## How to try it
 
 1. Open the live site (link in the submission) and **sign up** (name, email, password).
