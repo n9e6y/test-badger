@@ -23,7 +23,7 @@ services:
       - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ../technical-doc:/srv/doc:ro  # D30: technical documentation at /doc/ (gitignored folder)
+      - ../blog:/srv/blog:ro  # D30/D31: /doc/ and /business-plan/ pages (gitignored folder)
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

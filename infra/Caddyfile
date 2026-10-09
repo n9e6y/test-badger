@@ -12,14 +12,24 @@
 		}
 	}
 
-	# Technical documentation (D30): static Claude Design export from technical-doc/
-	# (gitignored; copied to the server separately), mounted read-only at /srv/doc.
-	# /doc/ = documentation, /doc/deck = slide deck. The trailing slash keeps relative asset paths working.
+	# Submission pages (D30, D31): static Claude Design exports from blog/ (gitignored; copied
+	# to the server separately), mounted read-only at /srv/blog. Trailing slashes keep relative
+	# asset paths working.
+	# /doc/ = technical documentation, /doc/deck = technical deck
 	redir /doc /doc/ 308
 	handle_path /doc/* {
-		root * /srv/doc
+		root * /srv/blog/technical-doc
 		rewrite / "/test-badger Technical Documentation.dc.html"
 		rewrite /deck "/test-badger Technical Deck.dc.html"
+		file_server
+	}
+
+	# /business-plan/ = business plan (web), /business-plan/print = paged print version
+	redir /business-plan /business-plan/ 308
+	handle_path /business-plan/* {
+		root * /srv/blog/business-plan
+		rewrite / "/test-badger Business Plan Web.dc.html"
+		rewrite /print "/test-badger Business Plan.dc.html"
 		file_server
 	}
 
