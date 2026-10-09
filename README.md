@@ -1,37 +1,91 @@
-# test-badger
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.png">
+    <img src="docs/assets/logo-light.png" alt="test-badger" width="420">
+  </picture>
+</p>
 
-**An AI agent that tests your website's critical flows before you release.**
-Give it your site and a goal, approve its test plan, watch it test in a real browser, and get a bug report with screenshots, console and network errors, and exact steps to reproduce.
+<h3 align="center">An AI agent that tests your website's critical flows before you release.</h3>
 
-**Live demo:** the link is in our competition submission. You can also run the whole stack yourself (see [Run it yourself](#run-it-yourself)).
+<p align="center">
+  Give it your site and a goal, approve its test plan, watch it test in a real browser,<br>
+  and get a bug report with screenshots, console and network errors, a video and exact steps to reproduce.
+</p>
 
-Built for buildX, problem #4 "Web Workflow Tester".
+<p align="center">
+  <img alt="9/9 planted bugs found" src="https://img.shields.io/badge/planted%20bugs%20found-9%2F9-1f6b3f?style=flat-square">
+  <img alt="0 false findings" src="https://img.shields.io/badge/false%20findings-0%20in%2013%20runs-1f6b3f?style=flat-square">
+  <img alt="AI cost per run" src="https://img.shields.io/badge/AI%20cost%20per%20run-%240.15%E2%80%930.43-0a0a0a?style=flat-square">
+  <br>
+  <img alt="Python 3.12" src="https://img.shields.io/badge/Python-3.12-0a0a0a?style=flat-square&logo=python&logoColor=white">
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0a0a0a?style=flat-square&logo=fastapi&logoColor=white">
+  <img alt="Playwright" src="https://img.shields.io/badge/Playwright-Chromium-0a0a0a?style=flat-square&logo=playwright&logoColor=white">
+  <img alt="React" src="https://img.shields.io/badge/React-TypeScript-0a0a0a?style=flat-square&logo=react&logoColor=white">
+  <img alt="Docker Compose" src="https://img.shields.io/badge/Docker-Compose-0a0a0a?style=flat-square&logo=docker&logoColor=white">
+</p>
+
+<p align="center">
+  <a href="#what-it-does">What it does</a> ·
+  <a href="#results">Results</a> ·
+  <a href="#for-judges">For judges</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#run-it-yourself">Run it yourself</a>
+</p>
+
+<p align="center">
+  <img src="docs/assets/screenshot-landing.png" alt="test-badger landing page" width="900">
+</p>
+
+> **Live demo:** the link is in our competition submission. You can also run the whole stack yourself ([Run it yourself](#run-it-yourself)).
+> Built for **buildX**, problem #4 "Web Workflow Tester".
 
 ---
 
 ## What it does
 
-1. **Add a site.** Enter a URL and confirm you own it or are authorized to test it.
-2. **Pick a test type and a mode.** *Registration* (signup with valid and invalid data, duplicate accounts, login), *Store & checkout* (cart, quantities, coupons, stock, checkout up to the payment step), or both. **Hard** mode lets the strongest model drive the browser; **Easy** uses a lighter model for about half the cost.
-3. **Approve the plan.** The agent explores the site, proposes test scenarios, and waits for you. You can switch scenarios off. Nothing is tested before you approve.
-4. **Watch it test.** Each scenario runs in a real Chromium browser. You see the live screenshot, every action the agent takes and why, the elapsed time and the AI cost so far.
-5. **Read the report.** Every scenario gets one of four verdicts: **Passed**, **Bug found**, **Blocked** (e.g. CAPTCHA) or **Inconclusive**. Every bug comes with screenshots, console and network errors, and steps to reproduce. You can copy a finding as Markdown or print the report as a PDF.
-6. **Watch it happen.** Every scenario is recorded on video; "Watch video" on a bug plays exactly the part where it happened.
-7. **Check your fix.** After fixing, click **Re-run same plan**: the same scenarios run again without new planning, and the report shows per scenario what is **fixed**, **still broken** or **new**.
+| # | Step | What happens |
+|:-:|---|---|
+| **1** | **Add a site** | Enter a URL and confirm you own it or are authorized to test it. |
+| **2** | **Pick a test and a mode** | *Registration* (valid and invalid signups, duplicate accounts, login), *Store & checkout* (cart, quantities, coupons, stock, checkout up to the payment step), or both. **Hard** lets the strongest model drive the browser; **Easy** uses a lighter model for about half the cost. |
+| **3** | **Approve the plan** | The agent explores the site, proposes test scenarios and waits for you. Switch scenarios off if you like. Nothing is tested before you approve. |
+| **4** | **Watch it test** | Each scenario runs in a real Chromium browser: live screenshot, every action and why, elapsed time and AI cost so far. |
+| **5** | **Read the report** | Every scenario gets a verdict: **Passed**, **Bug found**, **Blocked** (e.g. CAPTCHA) or **Inconclusive**. Every bug has screenshots, console and network errors and steps to reproduce. Copy a finding as Markdown or print the report as PDF. |
+| **6** | **Watch it happen** | Every scenario is recorded; **Watch video** on a bug plays exactly the moment it happened. |
+| **7** | **Check your fix** | **Re-run same plan** runs the same scenarios again and shows per scenario what is **fixed**, **still broken** or **new**. |
 
-## Results on our benchmark
+<p align="center">
+  <img src="docs/assets/screenshot-live-run.png" alt="Live run: scenarios, the agent's browser, and its activity feed with time and cost" width="900">
+  <br><sub><b>Live run.</b> Scenarios on the left, the agent's real browser in the middle, every action it takes on the right.</sub>
+</p>
 
-Our demo shop has 9 deliberately planted bugs in signup, cart and checkout (for example, the "Remove" button in the cart does nothing).
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshot-report-bug.png" alt="Report with a bug found"></td>
+    <td width="50%"><img src="docs/assets/screenshot-report-partly-tested.png" alt="Partly tested report"></td>
+  </tr>
+  <tr>
+    <td><sub><b>Bug found.</b> What was expected, what actually happened, screenshots, evidence and steps to reproduce.</sub></td>
+    <td><sub><b>Honest when it can't finish.</b> "Partly tested" with a reason for every check it couldn't complete, never a false green.</sub></td>
+  </tr>
+</table>
+
+## Results
+
+Our demo shop has **9 deliberately planted bugs** in signup, cart and checkout (for example, the cart's "Remove" button does nothing). The full answer key is in [docs/demo-shop-answer-key.md](docs/demo-shop-answer-key.md).
 
 | Metric | Result |
 |---|---|
-| Planted bugs found | **9 / 9** |
-| False findings | **0** in 13 evaluation runs (including runs on a bug-free version of the shop) |
+| Planted bugs found | **9 / 9** in the final evaluation (Hard mode) |
+| False findings | **0** in 13 evaluation runs, including runs on a bug-free copy of the shop |
 | Run time | Registration ~2.5 min, Store ~4.5 min (+ ~30 s planning) |
-| AI cost per run | **Hard:** Registration ~$0.29, Store ~$0.43 (Claude Sonnet drives the browser) · **Easy:** ~$0.15 / $0.26 (Gemini Flash; found 8/9 in its evaluation pair) |
+| AI cost per run | **Hard:** Registration ~$0.29, Store ~$0.43 (Claude Sonnet drives the browser) · **Easy:** ~$0.15 / ~$0.26 (Gemini Flash; found 8/9 in its evaluation pair) |
 | Bot protection | A CAPTCHA on the entry page ends as a clear *Blocked* verdict with advice, at zero AI cost |
 
-The agent prefers *Inconclusive* over a weak *Bug found*. Across all runs, every miss surfaced as Inconclusive with a reason, never as a false Passed.
+The agent prefers *Inconclusive* over a weak *Bug found*: every miss surfaced as Inconclusive with a reason, never as a false *Passed*.
+
+<p align="center">
+  <img src="docs/assets/demo-shop-bugs.png" alt="The demo shop with its 9 planted bugs marked" width="900">
+</p>
 
 ## For judges
 
@@ -42,13 +96,11 @@ Log in on the live site with the judge account from our submission (or sign up w
 
 On any report, **Watch video** on a scenario shows exactly what the agent did.
 
-## How to try it
+<details>
+<summary><b>Accounts and limits</b></summary>
 
-1. Open the live site (link in the submission) and **sign up** (name, email, password).
-2. On the dashboard, start a test on the **Demo shop** (Registration, Store, or both), or click **Test your own site** and add a URL you are allowed to test.
-3. Approve the plan, watch the run, read the report. Past runs are listed under *Recent runs* and on each site's history page.
-
-Each account can start a limited number of runs per day, because every test costs real AI credit. On the public demo, new accounts use **Easy** mode; **Hard** mode is enabled for the judges' account (configurable, see `JUDGE_EMAIL` / `PUBLIC_MODES`).
+Each account can start a limited number of runs per day, because every test costs real AI credit. New accounts use **Easy** mode; **Hard** mode is enabled for the judges' account (configurable, see `JUDGE_EMAIL` / `PUBLIC_MODES`). Past runs are listed under *Recent runs* on the dashboard and on each site's history page.
+</details>
 
 ---
 
@@ -58,36 +110,39 @@ Each account can start a limited number of runs per day, because every test cost
 Browser (React)  ──HTTPS──  Caddy  ──/api──  FastAPI (API)  ──jobs──  Redis  ──  Worker (agent + Playwright/Chromium)
                                                 │                                         │
                                             PostgreSQL  ◄─────── runs, steps, findings ───┘
-                                                                  screenshots on a volume
+                                                                  screenshots + videos on a volume
 ```
 
 **Agent pipeline** (in the worker, `backend/agent/`):
 
 | Stage | What happens |
 |---|---|
-| Recon | Opens the site, finds the relevant pages (signup, cart, checkout…) |
-| Planner | Writes a test plan from the test-type template and what recon found → user approval |
-| Executor | Runs each scenario step by step: reads a page snapshot (and a screenshot when needed), picks one tool call (click, type, navigate…), observes the result |
-| Triage | Verifies suspected bugs with a second model call, drops duplicates, marks unsure ones as *Needs review* |
-| Reporter | Writes the plain-language summary. Repro steps, URLs and errors are filled in by code from the recorded steps, not by the model |
+| **Recon** | Opens the site, finds the relevant pages (signup, cart, checkout…) |
+| **Planner** | Writes a test plan from the test-type template and what recon found → **user approval** |
+| **Executor** | Runs each scenario step by step: reads a page snapshot (and a screenshot when needed), picks one tool call (click, type, navigate…), observes the result |
+| **Triage** | Verifies suspected bugs with a second model call, drops duplicates, marks unsure ones as *Needs review* |
+| **Reporter** | Writes the plain-language summary. Repro steps, URLs and errors are filled in **by code** from the recorded steps, not by the model |
 
-**Design rules**
+### Design rules
 
 - **The LLM decides, the code enforces.** The origin allowlist, private-network (SSRF) block, payment and destructive-action guards, and step/cost budgets are enforced in code (`agent/browser/guards.py`), not just in prompts.
 - **Every LLM output is a validated Pydantic model**, with one retry on invalid output.
 - **Secrets never reach the model.** Test credentials are placeholders swapped in by the tool layer, and password fields are masked in screenshots.
-- **Evidence comes from recordings.** Screenshots, console and network errors are captured by Playwright and attached by code.
+- **Evidence comes from recordings.** Screenshots, video, console and network errors are captured by Playwright and attached by code.
+- **Honest verdicts.** Green only when every check passed; anything the agent could not finish is reported as such, with a reason.
 - **Generic core, pluggable flows.** Each test type is one template file in `agent/templates/`. Adding a new flow (login, contact form, booking) needs no core changes.
 - **One multi-provider LLM client** (Anthropic, OpenAI, or any OpenAI-compatible endpoint such as OpenRouter), with the model chosen per role and token cost recorded for every call. No local models.
 
 ## Tech stack
 
-- **Backend:** Python 3.12, FastAPI, SQLAlchemy 2 (async), Alembic, Pydantic v2, arq (Redis job queue)
-- **Agent:** Playwright (Chromium, headless), hosted LLMs with tool calling and vision
-- **Frontend:** React, Vite, TypeScript, TanStack Query, Tailwind CSS, shadcn/ui
-- **Data:** PostgreSQL 16, Redis 7
-- **Infra:** Docker Compose, Caddy (automatic HTTPS), one VPS
-- **Demo shop:** a separate FastAPI + Jinja2 + SQLite app with switchable planted bugs
+| Area | Technology |
+|---|---|
+| Backend | Python 3.12, FastAPI, SQLAlchemy 2 (async), Alembic, Pydantic v2, arq (Redis job queue) |
+| Agent | Playwright (Chromium, headless), hosted LLMs with tool calling and vision |
+| Frontend | React, Vite, TypeScript, TanStack Query, Tailwind CSS, shadcn/ui |
+| Data | PostgreSQL 16, Redis 7 |
+| Infra | Docker Compose, Caddy (automatic HTTPS), one VPS, nightly database backup |
+| Demo shop | A separate FastAPI + Jinja2 + SQLite app with switchable planted bugs |
 
 ## Repository layout
 
@@ -95,7 +150,8 @@ Browser (React)  ──HTTPS──  Caddy  ──/api──  FastAPI (API)  ─�
 backend/     FastAPI app (app/), agent (agent/), worker.py, Alembic migrations, tests
 frontend/    React app
 demo-shop/   Test target with planted bugs B1–B9 (the bugs are intentional; don't fix them)
-infra/       docker-compose.yml, Caddyfile, .env.example
+infra/       docker-compose.yml, Caddyfile, .env.example, backup script
+docs/        Demo-shop answer key, README images
 ```
 
 ## Run it yourself
@@ -124,7 +180,8 @@ LLM_EXECUTOR_QUICK=openai_compat:google/gemini-3.8-flash   # executor for Easy m
 
 Budgets (`RUN_COST_CAP_USD`, `MAX_CONCURRENT_RUNS`, `RUNS_PER_USER_PER_DAY`) and video recording (`VIDEO_ENABLED`) are also set in `.env`.
 
-### Development
+<details>
+<summary><b>Development</b></summary>
 
 ```bash
 # backend
@@ -138,6 +195,7 @@ cd frontend && npm install && npm run dev
 ```
 
 Agent tests use a fake LLM client, so the test suite never calls a real model.
+</details>
 
 ## Safety and scope
 
@@ -145,3 +203,9 @@ Agent tests use a fake LLM client, so the test suite never calls a real model.
 - It never submits real payments: checkout stops at the payment step.
 - Sites behind bot protection (CAPTCHA, WAF) are reported as *Blocked* with advice on how to allow the tester, not bypassed.
 - Browser-based testing only: no API, mobile app or CI testing in this version.
+
+<p align="center">
+  <br>
+  <img src="docs/assets/logo-mark.svg" alt="" width="36"><br>
+  <sub>test-badger · find it first</sub>
+</p>
