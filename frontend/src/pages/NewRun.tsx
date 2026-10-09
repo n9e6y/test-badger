@@ -11,7 +11,7 @@ import { ErrorState, FullPageSpinner } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { allowedMode, estimate, estimateUsd, MODES, RESERVED_NOTE } from '@/lib/mode'
+import { allowedMode, estimate, estimateUsd, MODES, RESERVED_NOTE, RUNS_RESERVED_NOTE } from '@/lib/mode'
 import { cn } from '@/lib/utils'
 
 const TYPES: { key: TestChoice; title: string; text: string; icon: typeof UserPlus }[] = [
@@ -237,7 +237,9 @@ export function NewRun() {
           it. {MODES[mode].label} mode, {type === 'both' ? 'both tests' : 'this test'}: about {chosen.minutes.slice(1)}, AI cost {chosen.cost}.
           {runsLeft !== undefined && (
             <span className={cn('mt-1 block', outOfRuns && 'font-medium text-v-bug')}>
-              {outOfRuns
+              {me.data?.runs_per_day === 0
+                ? RUNS_RESERVED_NOTE
+                : outOfRuns
                 ? `Not enough test runs left today (${runsLeft} of ${me.data?.runs_per_day}). Please come back tomorrow.`
                 : `${runsLeft} of ${me.data?.runs_per_day} test runs left today.`}
             </span>

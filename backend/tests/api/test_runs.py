@@ -337,6 +337,25 @@ async def test_public_account_easy_only_with_its_own_limit(
     assert r.status_code == 429
 
 
+async def test_public_runs_switched_off(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """D34: RUNS_PER_USER_PER_DAY=0 blocks public accounts with a clear message."""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "runs_per_user_per_day", 0)
+    await client.post(
+        "/api/auth/signup",
+        json={"name": "Pat", "email": "public0@example.com", "password": "Secret123!"},
+    )
+    assert (await client.get("/api/auth/me")).json()["runs_per_day"] == 0
+    r = await client.post(
+        f"/api/projects/{await demo_id(client)}/runs",
+        json={"test_type": "registration", "mode": "quick"},
+    )
+    assert r.status_code == 403 and "reserved for the judges" in r.json()["detail"]
+
+
 async def test_judge_account_is_seeded_and_cannot_be_taken_over(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:

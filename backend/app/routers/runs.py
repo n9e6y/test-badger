@@ -90,6 +90,11 @@ async def check_run_allowed(session: AsyncSession, user: User, mode: str, test_t
             status.HTTP_403_FORBIDDEN,
             "Hard mode is only available to the judge account. Please choose Easy mode.",
         )
+    if policy.runs_per_day <= 0:  # D34: free runs switched off; only judge accounts may run
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Test runs on this demo are reserved for the judges' account.",
+        )
     if await runs_today(session, user.id) >= policy.runs_per_day:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,

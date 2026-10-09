@@ -11,7 +11,7 @@ import { RunsTable } from '@/components/common/RunsTable'
 import { EmptyState, ErrorState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { formatCost, formatDate, TEST_TYPE_LABEL } from '@/lib/format'
-import { allowedMode, MODES, RESERVED_NOTE } from '@/lib/mode'
+import { allowedMode, MODES, RESERVED_NOTE, RUNS_RESERVED_NOTE } from '@/lib/mode'
 import { cn } from '@/lib/utils'
 
 /** What an owner would tell a tester about the demo shop; the 9/9 evaluation used exactly this (09 §1). */
@@ -45,6 +45,7 @@ export function Dashboard() {
       },
     )
   }
+  const noRuns = me.data?.runs_per_day === 0 // D34: free runs switched off
   const pending = (c: TestChoice) => startRun.isPending && startRun.variables?.choice === c
 
   return (
@@ -99,7 +100,10 @@ export function Dashboard() {
               </button>
             ))}
           </div>
-          {me.data && (
+          {me.data && me.data.runs_per_day === 0 && (
+            <p className="text-xs font-medium text-muted-foreground">{RUNS_RESERVED_NOTE}</p>
+          )}
+          {me.data && me.data.runs_per_day > 0 && (
             <p className="text-xs text-muted-foreground">
               {!canUse('thorough') && `${RESERVED_NOTE} `}
               {me.data.runs_left_today} of {me.data.runs_per_day} test runs left today.
@@ -107,15 +111,15 @@ export function Dashboard() {
             </p>
           )}
           <div className="mt-1.5 flex flex-wrap gap-2.5">
-            <Button variant="outline" onClick={() => startDemo('registration')} disabled={!demo || startRun.isPending}>
+            <Button variant="outline" onClick={() => startDemo('registration')} disabled={!demo || startRun.isPending || noRuns}>
               {pending('registration') ? <Loader2 className="animate-spin" aria-hidden /> : <UserPlus aria-hidden />}
               Test registration
             </Button>
-            <Button variant="outline" onClick={() => startDemo('store')} disabled={!demo || startRun.isPending}>
+            <Button variant="outline" onClick={() => startDemo('store')} disabled={!demo || startRun.isPending || noRuns}>
               {pending('store') ? <Loader2 className="animate-spin" aria-hidden /> : <ShoppingCart aria-hidden />}
               Test store &amp; checkout
             </Button>
-            <Button variant="outline" onClick={() => startDemo('both')} disabled={!demo || startRun.isPending}>
+            <Button variant="outline" onClick={() => startDemo('both')} disabled={!demo || startRun.isPending || noRuns}>
               {pending('both') ? <Loader2 className="animate-spin" aria-hidden /> : <Layers aria-hidden />}
               Test both
             </Button>

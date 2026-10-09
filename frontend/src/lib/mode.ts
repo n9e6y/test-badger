@@ -39,3 +39,5 @@ export function allowedMode(wanted: RunMode, allowed: RunMode[] | undefined): Ru
 }
 
 export const RESERVED_NOTE = 'Hard mode is reserved for the judge account in this demo.'
+/** D34: shown when free test runs are switched off (runs per day = 0). */
+export const RUNS_RESERVED_NOTE = "Test runs on this demo are reserved for the judges' account. You can still look around."
