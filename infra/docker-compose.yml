@@ -17,6 +17,8 @@ services:
     build:
       context: ../frontend
       dockerfile: ../infra/caddy/Dockerfile
+      additional_contexts:
+        v2: ../frontend-v2  # redesigned app served at NEW_APP_SITE
     ports:
       - "80:80"
       - "443:443"

@@ -26,3 +26,4 @@ class UserOut(BaseModel):
     runs_per_day: int = 0
     runs_left_today: int = 0
     budget_left_usd: float | None = None  # D26: the tier's AI money left (None = no limit)
+    budget_total_usd: float | None = None  # the tier's whole budget (None = no limit)

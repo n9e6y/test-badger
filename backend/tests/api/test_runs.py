@@ -457,6 +457,7 @@ async def test_all_public_accounts_share_one_budget(
         json={"name": "P1", "email": "p1@example.com", "password": "Secret123!"},
     )
     assert r.json()["budget_left_usd"] == 0.40
+    assert r.json()["budget_total_usd"] == 0.40
     first = await start(client, mode="quick")
     await _set_cost(first["id"], 0.30)
     client.cookies.clear()

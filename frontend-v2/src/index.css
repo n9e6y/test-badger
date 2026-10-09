@@ -1,0 +1,184 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow/700.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* test-badger look: the "Industry" wireframe system, v3 (claude_context/design/test-badger-v2).
+   Black and white only (ink on paper); the four verdict colors are the only hues.
+   Barlow Condensed headings over Barlow, square hairline frames with "+" registration
+   marks (.blueprint + <Corners />), the badger stripe on page-level labels (.kicker). */
+@theme inline {
+    --font-heading: "Barlow Condensed", system-ui, sans-serif;
+    --font-sans: "Barlow", system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --color-surface: var(--surface);
+    /* ink ramp (greys): 100–300 tints for hover/selected, 400–500 muted, 700 = ink */
+    --color-ink-100: #f0f0f0;
+    --color-ink-200: #e0e0e0;
+    --color-ink-300: #c4c4c4;
+    --color-ink-400: #8a8a8a;
+    --color-ink-500: #4a4a4a;
+    --color-ink-600: #2a2a2a;
+    --color-ink-700: #0a0a0a;
+    --color-ink-800: #000000;
+    --color-ink-900: #000000;
+    /* verdict colors — only used for verdicts (see lib/verdict.ts) */
+    --color-v-pass: #1f6b3f;
+    --color-v-pass-bg: #e2f0e7;
+    --color-v-pass-bd: #9fcbb0;
+    --color-v-bug: #a8261d;
+    --color-v-bug-bg: #f9e3e1;
+    --color-v-bug-bd: #e3a59f;
+    --color-v-blocked: #7f5200;
+    --color-v-blocked-bg: #f8ecd2;
+    --color-v-blocked-bd: #e0c07c;
+    --color-v-inc: #555558;
+    --color-v-inc-bg: #e6e6e8;
+    --color-v-inc-bd: #b7b7ba;
+    --radius-sm: 0px;
+    --radius-md: 0px;
+    --radius-lg: 0px;
+    --radius-xl: 0px;
+    --radius-2xl: 0px;
+    --radius-3xl: 0px;
+    --radius-4xl: 0px;
+}
+
+:root {
+    --background: #ffffff;
+    --surface: #f4f4f4;
+    --foreground: #0a0a0a;
+    --card: #ffffff;
+    --card-foreground: #0a0a0a;
+    --popover: #ffffff;
+    --popover-foreground: #0a0a0a;
+    --primary: #0a0a0a;
+    --primary-foreground: #ffffff;
+    --secondary: transparent;
+    --secondary-foreground: #0a0a0a;
+    --muted: #f0f0f0;
+    --muted-foreground: #4a4a4a;
+    --accent: #f0f0f0;
+    --accent-foreground: #0a0a0a;
+    --destructive: #a8261d;
+    --border: rgba(10, 10, 10, 0.18);
+    --input: rgba(10, 10, 10, 0.26);
+    --ring: #0a0a0a;
+    --radius: 0px;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+  h1 {
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in srgb, #0a0a0a 18%, transparent);
+  }
+}
+
+@layer components {
+/* Blueprint frame: hairline border + four "+" registration marks (<Corners />). */
+.blueprint {
+  position: relative;
+  border: 1px solid var(--border);
+}
+.blueprint > .corner {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  pointer-events: none;
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+}
+.blueprint > .corner::before,
+.blueprint > .corner::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+.blueprint > .corner::before { left: 5px; top: 0; width: 1px; height: 100%; }
+.blueprint > .corner::after { top: 5px; left: 0; width: 100%; height: 1px; }
+.blueprint > .corner.tl { top: -6px; left: -6px; }
+.blueprint > .corner.tr { top: -6px; right: -6px; }
+.blueprint > .corner.bl { bottom: -6px; left: -6px; }
+.blueprint > .corner.br { bottom: -6px; right: -6px; }
+
+/* Small uppercase label ("kicker") used above headings and section titles,
+   led by the badger stripe (dark, light, dark): the stripe marks page-level labels only. */
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--color-ink-700);
+}
+.kicker.page-label::before {
+  content: "";
+  flex: none;
+  width: 18px;
+  height: 8px;
+  /* v2 badger stripe: dark 3px, light 2px, dark 3px */
+  background: linear-gradient(to bottom, currentColor 0 3px, transparent 3px 5px, currentColor 5px 8px);
+}
+}
+
+@keyframes tb-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .25 } }
+
+/* Print / Save as PDF (S5): only the report, on white */
+@media print {
+  header, nav, .print\:hidden { display: none !important; }
+  body { background: white !important; }
+  main { max-width: none !important; padding: 0 !important; }
+  article, section { break-inside: avoid; }
+  .blueprint > .corner { display: none; }
+}

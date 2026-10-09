@@ -16,7 +16,7 @@ from app.security import (
     set_session_cookie,
     verify_password,
 )
-from app.services.accounts import budget_left, policy_for, runs_today
+from app.services.accounts import budget_left, policy_for, runs_today, tier_budget
 from app.services.ratelimit import failed_logins, signups
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -40,6 +40,7 @@ async def user_out(session: AsyncSession, user: User) -> UserOut:
     out.runs_left_today = max(0, policy.runs_per_day - await runs_today(session, user.id))
     left = await budget_left(session, policy.key_tier)
     out.budget_left_usd = None if left is None else round(left, 2)
+    out.budget_total_usd = tier_budget(policy.key_tier)
     return out
 
 
