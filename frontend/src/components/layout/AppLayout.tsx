@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { INFO_PAGES } from '@/lib/pages'
 import { cn } from '@/lib/utils'
 
 function initials(name: string): string {
@@ -59,9 +60,18 @@ export function AppLayout() {
             >
               Dashboard
             </NavLink>
+            {INFO_PAGES.map((p) => (
+              <a
+                key={p.href}
+                href={p.href}
+                className="hidden border-b-2 border-transparent px-2.5 py-1.5 text-[15px] hover:border-border md:inline-block"
+              >
+                {p.label}
+              </a>
+            ))}
           </nav>
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-sm text-muted-foreground md:inline">{me.data.email}</span>
+            <span className="hidden text-sm text-muted-foreground xl:inline">{me.data.email}</span>
             <Button variant="outline" className="hidden sm:inline-flex" onClick={onLogout} disabled={logout.isPending}>
               <LogOut aria-hidden /> Log out
             </Button>
@@ -81,6 +91,12 @@ export function AppLayout() {
                 <DropdownMenuItem onSelect={() => navigate('/app')} className="sm:hidden">
                   Dashboard
                 </DropdownMenuItem>
+                {INFO_PAGES.map((p) => (
+                  <DropdownMenuItem key={p.href} onSelect={() => window.location.assign(p.href)}>
+                    {p.label}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={onLogout}>
                   <LogOut className="size-4" aria-hidden />
                   Log out

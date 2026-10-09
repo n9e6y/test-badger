@@ -6,6 +6,7 @@ import type { Verdict } from '@/api/types'
 import { ToneBadge, VerdictBadge } from '@/components/common/badges'
 import { Corners } from '@/components/common/Corners'
 import { Logo, LogoMark, Wordmark } from '@/components/common/Logo'
+import { INFO_PAGES } from '@/lib/pages'
 import { Button } from '@/components/ui/button'
 import { SCENARIO_VERDICT } from '@/lib/verdict'
 
@@ -78,6 +79,12 @@ export function Landing() {
           <nav aria-label="Page" className="hidden items-center gap-5 text-[15px] md:flex">
             <a href="#how" className="hover:text-ink-700">How it works</a>
             <a href="#sample" className="hover:text-ink-700">Sample report</a>
+            <span aria-hidden className="h-4 w-px bg-border" />
+            {INFO_PAGES.map((p) => (
+              <a key={p.href} href={p.href} className="hover:text-ink-700">
+                {p.label}
+              </a>
+            ))}
           </nav>
           <Button variant="ghost" asChild>
             <Link to="/login">Log in</Link>
@@ -206,6 +213,13 @@ export function Landing() {
             <LogoMark size={20} />
             <Wordmark className="text-lg" />
           </span>
+          <nav aria-label="More about test-badger" className="flex flex-wrap gap-x-5 gap-y-1">
+            {INFO_PAGES.map((p) => (
+              <a key={p.href} href={p.href} className="underline-offset-4 hover:underline">
+                {p.label}
+              </a>
+            ))}
+          </nav>
           <span className="text-muted-foreground">Only test sites you own or are authorized to test.</span>
         </footer>
       </main>
