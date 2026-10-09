@@ -15,14 +15,17 @@
 	# Submission pages (D30, D31; noindex D32): static Claude Design exports from blog/ (gitignored; copied
 	# to the server separately), mounted read-only at /srv/blog. Trailing slashes keep relative
 	# asset paths working.
-	# /doc/ = technical documentation, /doc/deck = technical deck
+	# /doc/ = technical documentation; the old deck link goes to the documentation (D33)
 	redir /doc /doc/ 308
+	redir /doc/deck /doc/ 302
 	handle_path /doc/* {
 		root * /srv/blog/technical-doc
 		# keep submission pages out of search engines
 		header X-Robots-Tag "noindex, nofollow"
-		rewrite / "/test-badger Technical Documentation.dc.html"
-		rewrite /deck "/test-badger Technical Deck.dc.html"
+		# the page's "Business plan" link points at a sibling copy: send it to the real page
+		@businessplan path "/test-badger Business Plan*"
+		redir @businessplan /business-plan/ 302
+		rewrite / "/test-badger Tech Docs.dc.html"
 		file_server
 	}
 
@@ -32,7 +35,7 @@
 		root * /srv/blog/business-plan
 		# keep submission pages out of search engines
 		header X-Robots-Tag "noindex, nofollow"
-		rewrite / "/test-badger Business Plan Web.dc.html"
+		rewrite / "/test-badger Business Plan Web v2.dc.html"
 		rewrite /print "/test-badger Business Plan.dc.html"
 		file_server
 	}
