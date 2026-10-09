@@ -102,32 +102,71 @@ Each account can start a limited number of runs per day, because every test cost
 
 ## How it works
 
-```
-Browser (React)  ──HTTPS──  Caddy  ──/api──  FastAPI (API)  ──jobs──  Redis  ──  Worker (agent + Playwright/Chromium)
-                                                │                                         │
-                                            PostgreSQL  ◄─────── runs, steps, findings ───┘
-                                                                  screenshots + videos on a volume
+### Architecture
+
+```mermaid
+flowchart TB
+    U(["👤 You in the browser"]) -- HTTPS --> C
+    subgraph server ["One server · Docker Compose"]
+        C["Caddy<br/><sub>HTTPS · web app</sub>"] -- /api --> A["API<br/><sub>FastAPI</sub>"]
+        A -- jobs --> R[("Redis<br/><sub>queue · live events</sub>")]
+        R --> W["Worker<br/><sub>agent + Playwright</sub>"]
+        A --- P[("PostgreSQL<br/><sub>runs · steps · findings</sub>")]
+        W --- P
+        W --- V[("Volume<br/><sub>screenshots · videos</sub>")]
+    end
+    W -- real Chromium --> S(["🌐 Site under test"])
+    W -- tool calls --> L{{"Hosted LLMs<br/><sub>one multi-provider client</sub>"}}
+    style server fill:none,stroke:#8a8a8a,stroke-dasharray:5 4
 ```
 
-**Agent pipeline** (in the worker, `backend/agent/`):
+The API never opens a browser: it queues jobs, and the worker runs the agent and Chromium. Every step the worker takes is published through Redis and streamed live to the page you are watching.
+
+### Agent pipeline
+
+```mermaid
+flowchart LR
+    R["🔍 Recon<br/><sub>find the pages</sub>"] --> P["📝 Planner<br/><sub>propose scenarios</sub>"]
+    P --> H{"✋ You approve<br/>the plan"}
+    H -- approved --> E["▶️ Executor<br/><sub>run each scenario</sub>"]
+    E --> T["⚖️ Triage<br/><sub>verify suspected bugs</sub>"]
+    T --> Rep["📄 Report<br/><sub>verdicts + evidence</sub>"]
+```
 
 | Stage | What happens |
 |---|---|
-| **Recon** | Opens the site, finds the relevant pages (signup, cart, checkout…) |
-| **Planner** | Writes a test plan from the test-type template and what recon found → **user approval** |
-| **Executor** | Runs each scenario step by step: reads a page snapshot (and a screenshot when needed), picks one tool call (click, type, navigate…), observes the result |
-| **Triage** | Verifies suspected bugs with a second model call, drops duplicates, marks unsure ones as *Needs review* |
-| **Reporter** | Writes the plain-language summary. Repro steps, URLs and errors are filled in **by code** from the recorded steps, not by the model |
+| **Recon** | Opens the site and finds the relevant pages (signup, cart, checkout…) |
+| **Planner** | Writes a test plan from the test-type template and what recon found, then waits for **your approval** |
+| **Executor** | Runs each scenario step by step in a real browser (see below) |
+| **Triage** | A second model call verifies every suspected bug; duplicates are dropped, unsure ones become *Needs review* |
+| **Report** | A plain-language summary. Repro steps, URLs and errors are filled in **by code** from the recorded steps, never by the model |
+
+### One step of a scenario
+
+```mermaid
+flowchart LR
+    O["👁️ Observe<br/><sub>page snapshot<br/>+ screenshot if needed</sub>"] --> D["🧠 Decide<br/><sub>the LLM picks one tool:<br/>click · type · navigate…</sub>"]
+    D --> G{"🛡️ Guards<br/><sub>allowlist · private network<br/>payment · budgets</sub>"}
+    G -- allowed --> X["⚡ Act<br/><sub>Playwright</sub>"]
+    G -- blocked --> B["⛔ Refused<br/><sub>with the reason</sub>"]
+    X --> Rec["🎥 Record<br/><sub>step · screenshot<br/>console · network</sub>"]
+    B --> Rec
+    Rec -- next step --> O
+```
+
+The model only *suggests* the next action. Code decides whether it may happen, and records what really happened, refused actions included.
 
 ### Design rules
 
-- **The LLM decides, the code enforces.** The origin allowlist, private-network (SSRF) block, payment and destructive-action guards, and step/cost budgets are enforced in code (`agent/browser/guards.py`), not just in prompts.
-- **Every LLM output is a validated Pydantic model**, with one retry on invalid output.
-- **Secrets never reach the model.** Test credentials are placeholders swapped in by the tool layer, and password fields are masked in screenshots.
-- **Evidence comes from recordings.** Screenshots, video, console and network errors are captured by Playwright and attached by code.
-- **Honest verdicts.** Green only when every check passed; anything the agent could not finish is reported as such, with a reason.
-- **Generic core, pluggable flows.** Each test type is one template file in `agent/templates/`. Adding a new flow (login, contact form, booking) needs no core changes.
-- **One multi-provider LLM client** (Anthropic, OpenAI, or any OpenAI-compatible endpoint such as OpenRouter), with the model chosen per role and token cost recorded for every call. No local models.
+| Rule | What it means |
+|---|---|
+| 🛡️ **The LLM decides, the code enforces** | The origin allowlist, private-network (SSRF) block, payment and destructive-action guards, and step and cost budgets live in code (`agent/browser/guards.py`), not only in prompts |
+| ✅ **Validated output** | Every LLM output is a Pydantic model, with one retry on invalid output, then a clean failure |
+| 🔒 **Secrets never reach the model** | Test credentials are placeholders swapped in by the tool layer; password fields are masked in screenshots |
+| 🎥 **Evidence comes from recordings** | Screenshots, video, console and network errors are captured by Playwright and attached by code |
+| ⚖️ **Honest verdicts** | Green only when every check passed; anything the agent could not finish is reported as such, with a reason |
+| 🧩 **Generic core, pluggable flows** | Each test type is one template file in `agent/templates/`; a new flow (login, contact form, booking) needs no core changes |
+| 🔌 **One multi-provider LLM client** | Anthropic, OpenAI or any OpenAI-compatible endpoint (e.g. OpenRouter), model chosen per role, tokens and cost recorded for every call. No local models |
 
 ## Tech stack
 
